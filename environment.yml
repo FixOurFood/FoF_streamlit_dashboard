@@ -16,4 +16,4 @@ dependencies:
   - pip
   - pip:
     - fair==1.6.4
-    - -e git+https://github.com/FixOurFood/AgriFoodPy-light.git#egg=argh
+    - -e git+https://github.com/FixOurFood/AgriFoodPy-light.git#egg=agrifoodpy
