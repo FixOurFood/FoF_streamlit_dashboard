@@ -9,11 +9,11 @@ dependencies:
   - numpy
   - netcdf4
   - xarray
-  - jupyter
-  - ipython
   - pandas
   - matplotlib
+  - altair
+  - streamlit
   - pip
   - pip:
     - fair
-    - git+git://github.com/FixOurFood/AgriFoodPy@main
+    - git+git://github.com/jucordero/AgriFoodPy@refactor_examples
