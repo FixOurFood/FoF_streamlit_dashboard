@@ -1,10 +1,11 @@
 name: fof_dashboard
 
 channels:
-  - conda-forge
   - defaults
+  # - conda-forge
 
 dependencies:
+  - python>=3.9
   - numpy
   - netcdf4
   - xarray
@@ -14,5 +15,5 @@ dependencies:
   - streamlit
   - pip
   - pip:
-    - fair
-    # - git+git://github.com/jucordero/AgriFoodPy@refactor_examples
+    - fair==1.6.4
+    - git+https://github.com/FixOurFood/AgriFoodPy-light.git@main
