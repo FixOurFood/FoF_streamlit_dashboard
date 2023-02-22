@@ -16,4 +16,4 @@ dependencies:
   - pip
   - pip:
     - fair
-    - git+git://github.com/jucordero/AgriFoodPy@refactor_examples
+    # - git+git://github.com/jucordero/AgriFoodPy@refactor_examples
