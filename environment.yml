@@ -1,0 +1,19 @@
+name: fof_dashboard
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python>=3.9
+  - numpy
+  - netcdf4
+  - xarray
+  - jupyter
+  - ipython
+  - pandas
+  - matplotlib
+  - pip
+  - pip:
+    - fair
+    - git+git://github.com/FixOurFood/AgriFoodPy@main
