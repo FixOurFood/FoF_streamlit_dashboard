@@ -64,7 +64,7 @@ def plot_bars_altair(food, xlimit, show="Item"):
         color='Item',
         opacity=alt.condition(selection, alt.value(1), alt.value(0.7)),
         tooltip='Item:N',
-        ).add_selection(selection)
+        ).add_selection(selection).properties(height=500)
 
     return c
 
@@ -72,10 +72,10 @@ def plot_land_altair(land):
     df = land.to_dataframe().reset_index()
     df = df.melt(id_vars = ['x', 'y'], value_vars = 'grade')
     c = alt.Chart(df).mark_rect().encode(
-        x=alt.X('x:O', scale=alt.Scale(reverse=True), axis=None),
+        x=alt.X('x:O', axis=None),
         y=alt.Y('y:O', scale=alt.Scale(reverse=True), axis=None),
         color='value:Q',
         tooltip='value',
-        ).properties(width={"step": 5}, height={"step": 5})
+        ).properties(width=300, height=500)
 
     return c

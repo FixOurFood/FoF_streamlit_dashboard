@@ -7,6 +7,9 @@ from agrifoodpy.food.food_supply import FAOSTAT, Nutrients_FAOSTAT, scale_food, 
 from agrifoodpy.impact.impact import PN18_FAOSTAT
 from agrifoodpy.impact import impact
 
+from agrifoodpy.land.land import ALC_5000 as ALC
+from agrifoodpy.land.land import CEH_5000 as CEH
+
 groups = {
     "Cereals" : np.array([2511, 2513, 2514, 2515, 2516, 2517, 2518, 2520, 2531, 2532, 2533, 2534, 2535, 2807]),
     "Pulses" : np.array([2546, 2547, 2549, 2555]),
@@ -52,9 +55,10 @@ co2e_g = PN18_FAOSTAT["GHG Emissions"]/1000
 # -----------------------------------------
 
 # 1000Ton_food / Year
-food_uk = FAOSTAT.sel(Region=area_fao, Item=items_uk).drop(["domestic", "residual", "tourist"])
+food_uk = FAOSTAT.sel(Region=area_fao, Item=items_uk).drop(["domestic"]).fillna(0)
 
 meat_items = food_uk.sel(Item=food_uk.Item_group=="Meat").Item.values
+
 animal_items = food_uk.sel(Item=food_uk.Item_origin=="Animal Products").Item.values
 plant_items = food_uk.sel(Item=food_uk.Item_origin=="Vegetal Products").Item.values
 
@@ -92,17 +96,21 @@ baseline = {"Weight":food_year_baseline,
 
 baseline_cap_day = {"Weight":food_cap_day_baseline,
             "Energy":kcal_cap_day_baseline,
-            "Fat":prot_cap_day_baseline,
-            "Proteins":fats_cap_day_baseline,
+            "Proteins":prot_cap_day_baseline,
+            "Fat":fats_cap_day_baseline,
             "Emissions":co2e_cap_day_baseline}
 
 bar_plot_limits = {"Weight":5000,
             "Energy":1500000,
-            "Fat":45000,
-            "Proteins":26000,
+            "Fat":26000,
+            "Proteins":45000,
             "Emissions":18}
-
 
 group_names = np.unique(food_uk.Item_group.values)
 
 land_options = ["Agricultural Land Classification", "Crops"]
+
+CEH = CEH.sel(Year=2021)
+ALC = ALC.where(ALC.grade < 6)
+
+crop_types = CEH.Type.values
