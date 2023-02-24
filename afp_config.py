@@ -108,9 +108,36 @@ bar_plot_limits = {"Weight":5000,
 
 group_names = np.unique(food_uk.Item_group.values)
 
+# --------------------------------------------
+# Land data - Area for sparing and forestation
+# --------------------------------------------
+
+# Carbon sequestration of forested land in t CO2/ha/yr
+co2_seq = 12.47
+
 land_options = ["Agricultural Land Classification", "Crops"]
 
 CEH = CEH.sel(Year=2021)
-ALC = ALC.where(ALC.grade < 6)
+ALC = ALC.where(ALC.grade < 6).where(ALC.grade > 0)
 
 crop_types = CEH.Type.values
+
+pasture_land_types = "gr"
+arable_land_types = list(crop_types)
+arable_land_types.remove("gr")
+
+use_type_list = ["arable", "pasture"]
+use_type = ["arable", "arable", "pasture", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", ]
+
+CEH = CEH.assign_coords({"use":("Type", use_type)})
+
+CEH_pasture_arable = CEH.groupby("use").sum()
+CEH_pasture_arable = CEH_pasture_arable.where(CEH_pasture_arable!=0)
+CEH_pasture_arable = CEH_pasture_arable.assign_coords({"use":use_type_list})
+
+crops_by_grade = [[CEH_pasture_arable.area.where(ALC.grade==grade).sel(use=use).sum(dim=("x", "y")).values for use in use_type_list] for grade in np.arange(1,6)]
+crops_by_grade = np.array(crops_by_grade)
+crops_by_grade /= 10000
+
+total_crops_arable = np.sum(crops_by_grade[:,0])
+total_crops_pasture = np.sum(crops_by_grade[:,1])

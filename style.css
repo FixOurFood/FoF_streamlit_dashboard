@@ -8,13 +8,13 @@
             }
 
 /* hange  */
-.stProgress .st-jr {
+/* .stProgress .st-jr {
     background-color: green;
-}
+} */
 
 /* Metric cards*/
 /* Adapted from https://startbootstrap.com/theme/sb-admin-2 */
-div.css-1r6slb0.e1tzin5v2 {
+/* div.css-1798j24.e1tzin5v0 {
     background-color: #FFFFFF;
     border: 2px solid #CCCCCC;
     padding: 5% 5% 5% 10%;
@@ -23,12 +23,30 @@ div.css-1r6slb0.e1tzin5v2 {
     border-left: 1.0rem solid #9AD8E1 !important;
     box-shadow: 0 0.5rem 0.5rem 0 rgba(58, 59, 69, 0.15) !important;
 
-}
+} */
 
-label.css-mkogse.e16fv1kl2 {
+/* label.css-mkogse.e16fv1kl2 {
     color: #36b9cc !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
+} */
+
+div[data-testid="metric-container"] {
+   background-color: #FFFFFF;;
+   border: 2px solid #CCCCCC;
+   padding: 5% 5% 5% 10%;
+   border-radius: 10px;
+   /* color: rgb(30, 103, 119); */
+   overflow-wrap: break-word;
+   border-left: 1.0rem solid #9AD8E1 !important;
+   box-shadow: 0 0.5rem 0.5rem 0 rgba(58, 59, 69, 0.15) !important;
+}
+
+/* breakline for metric text         */
+div[data-testid="metric-container"] > label[data-testid="stMetricLabel"] > div {
+   overflow-wrap: break-word;
+   white-space: break-spaces;
+   color: black;
 }
 
 
