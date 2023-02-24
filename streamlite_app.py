@@ -45,7 +45,7 @@ with st.sidebar:
 
         ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', 0, 100, 0, 25, ratio=(6,4)) / 25
         meatfree = cw.label_plus_slider('Number of meat free days a week', 0, 7, 0, ratio=(6,4))
-        extra_items = cw.label_plus_multiselect('Also exclude from meatfree days', ['Egg', 'FishSeafood', 'Dairy'])
+        extra_items = cw.label_plus_multiselect('Also exclude from meat free days', ['Egg', 'FishSeafood', 'Dairy'])
 
 
     # Farming and Prodction interventions
