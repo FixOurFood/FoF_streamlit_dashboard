@@ -253,7 +253,7 @@ with col2:
 
 with col1:
     # MAIN
-    st.metric(label="**:thermometer: Temperature rise by 2050 caused by food consumed in the UK**", value="{:.3f} °C".format(T[-50]) )
+    st.metric(label="**:thermometer: Temperature rise by 2050 caused by food consumed in the UK**", value="{:.3f} °C".format(T[-50]) , delta=-3)
     st.metric(label="**:sunrise_over_mountains: Total area of spared land**", value=f"{millify(spared_land_area, precision=2)} ha")
     st.metric(label="**:deciduous_tree: Total area of forested land**", value=f"{millify(forested_spared_land_area, precision=2)} ha")
 
