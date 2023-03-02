@@ -70,6 +70,7 @@ with st.sidebar:
         st.write('Policy intervention sliders to be shown here')
 
     st.markdown('''--- Created by [FixOurFood](https://github.com/FoxOurFood/).''')
+    st.markdown('''--- For feedback, please fill [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
 
     with st.expander("Advanced settings"):
         k = st.slider('Adoption timescale', 1, 10, 1)
