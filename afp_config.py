@@ -10,6 +10,8 @@ from agrifoodpy.impact import impact
 from agrifoodpy.land.land import ALC_5000 as ALC
 from agrifoodpy.land.land import CEH_5000 as CEH
 
+import fair
+
 groups = {
     "Cereals" : np.array([2511, 2513, 2514, 2515, 2516, 2517, 2518, 2520, 2531, 2532, 2533, 2534, 2535, 2807]),
     "Pulses" : np.array([2546, 2547, 2549, 2555]),
@@ -108,13 +110,19 @@ bar_plot_limits = {"Weight":5000,
 
 group_names = np.unique(food_uk.Item_group.values)
 
+# -------------------------------
+# Atmosferic model - Baseline run
+# -------------------------------
+
+total_emissions_gtco2e_baseline = (co2e_year_baseline["food"]).sum(dim="Item").to_numpy()/1e12
+C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, useMultigas=False)
+
 # --------------------------------------------
 # Land data - Area for sparing and forestation
 # --------------------------------------------
 
-# Carbon sequestration of forested land in t CO2/ha/yr
-co2_seq = 12.47
 
+# Carbon sequestration of forested land in t CO2/ha/yr
 land_options = ["Agricultural Land Classification", "Crops"]
 
 CEH = CEH.sel(Year=2021)
@@ -126,10 +134,32 @@ pasture_land_types = "gr"
 arable_land_types = list(crop_types)
 arable_land_types.remove("gr")
 
-use_type_list = ["arable", "pasture"]
-use_type = ["arable", "arable", "pasture", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", "arable", ]
+#
+use_type_list = ["arable", "pasture", "urban"]
+use_type = ["arable", "arable", "pasture", "arable",
+            "arable", "arable", "arable", "arable",
+            "arable", "urban", "arable", "arable",
+            "arable", "arable", "arable"]
+
+crop_strings = ["Beet",
+                "Field beans",
+                "Grass",
+                "Maize",
+                "Oilseed rape",
+                "Other crops",
+                "Peas",
+                "Potatoes",
+                "Spring barley",
+                "Solar panels",
+                "Sprint oats",
+                "Spring wheat",
+                "winter barley",
+                "winter oats",
+                "Winter wheat ",
+               ]
 
 CEH = CEH.assign_coords({"use":("Type", use_type)})
+CEH = CEH.assign_coords({"Crop name":("Type", crop_strings)})
 
 CEH_pasture_arable = CEH.groupby("use").sum()
 CEH_pasture_arable = CEH_pasture_arable.where(CEH_pasture_arable!=0)

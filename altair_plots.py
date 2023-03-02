@@ -1,5 +1,7 @@
 import altair as alt
 import xarray as xr
+import numpy as np
+import pandas as pd
 
 def plot_years_altair(food, show="Item", **kwargs):
 
@@ -15,14 +17,26 @@ def plot_years_altair(food, show="Item", **kwargs):
     selection = alt.selection_single(on='mouseover')
 
     c = alt.Chart(df).mark_area().encode(
-            alt.X('Year:O', axis=alt.Axis(values = [1970, 1990, 2010, 2030, 2050, 2070, 2090])),
+            alt.X('Year:O', axis=alt.Axis(values = np.linspace(1970, 2090, 7))),
             alt.Y('sum(value):Q', axis=alt.Axis(format="e", title='Food consumed')),
             alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
             tooltip=f'{show}:N'
-        ).add_selection(
-        selection
+    ).add_selection(selection
     ).properties(height=500)
+
+    return c
+
+def plot_years_total(food):
+    years = food.Year.values
+    total = food.sum(dim="Item")
+
+    df = pd.DataFrame(data={"Year":years, "value":total})
+    print(df)
+    c = alt.Chart(df).encode(
+    alt.X('Year:O', axis=alt.Axis(values = np.linspace(1970, 2090, 7))),
+    alt.Y('sum(value):Q', axis=alt.Axis(format="e", title='Food consumed'))
+    ).mark_line(color='red')
 
     return c
 
