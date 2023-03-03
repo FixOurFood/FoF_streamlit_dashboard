@@ -32,7 +32,6 @@ def plot_years_total(food):
     total = food.sum(dim="Item")
 
     df = pd.DataFrame(data={"Year":years, "value":total})
-    print(df)
     c = alt.Chart(df).encode(
     alt.X('Year:O', axis=alt.Axis(values = np.linspace(1970, 2090, 7))),
     alt.Y('sum(value):Q', axis=alt.Axis(format="e", title='Food consumed'))
