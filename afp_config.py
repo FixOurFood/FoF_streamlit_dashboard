@@ -34,6 +34,7 @@ items_uk = np.hstack(list(groups.values()))
 # ----------------------
 
 area_pop = 826 #UK
+area_pop_world = 900 #WORLD
 area_fao = 229 #UK
 years = np.arange(1961, 2101)
 
@@ -42,6 +43,7 @@ years = np.arange(1961, 2101)
 # ------------------------------
 
 pop_uk = UN.Medium.sel(Region=area_pop, Year=years)*1000
+pop_world = UN.Medium.sel(Region=area_pop_world, Year=years)*1000
 
 pop_past = pop_uk[pop_uk["Year"] < 2020]
 pop_future = pop_uk[pop_uk["Year"] >= 2020]
@@ -60,7 +62,6 @@ co2e_g = PN18_FAOSTAT["GHG Emissions"]/1000
 food_uk = FAOSTAT.sel(Region=area_fao, Item=items_uk).drop(["domestic"]).fillna(0)
 
 meat_items = food_uk.sel(Item=food_uk.Item_group=="Meat").Item.values
-
 animal_items = food_uk.sel(Item=food_uk.Item_origin=="Animal Products").Item.values
 plant_items = food_uk.sel(Item=food_uk.Item_origin=="Vegetal Products").Item.values
 
@@ -69,9 +70,15 @@ food_cap_day_baseline = food_uk*1e9/pop_past/365.25
 food_cap_day_baseline = xr.concat([food_cap_day_baseline, food_cap_day_baseline.sel(Year=2019) * proj_pop_ones], dim="Year")
 
 # kCal, g_prot, g_fat / g_food
-kcal_g = Nutrients_FAOSTAT.kcal.sel(Region=229)
-prot_g = Nutrients_FAOSTAT.protein.sel(Region=229)
-fats_g = Nutrients_FAOSTAT.fat.sel(Region=229)
+kcal_g = Nutrients_FAOSTAT["kcal"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
+prot_g = Nutrients_FAOSTAT["protein"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
+fats_g = Nutrients_FAOSTAT["fat"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
+
+# This can give weird numbers in the case of produced/imported items not use for food.
+# We set their nutrient values per mass to zero to avoid issues.
+kcal_g = kcal_g.where(np.isfinite(kcal_g), other=0)
+prot_g = prot_g.where(np.isfinite(prot_g), other=0)
+fats_g = fats_g.where(np.isfinite(fats_g), other=0)
 
 # kCal, g_prot, g_fat, g_co2e / cap / day
 kcal_cap_day_baseline = food_cap_day_baseline * kcal_g
@@ -90,6 +97,7 @@ prot_year_baseline = prot_cap_day_baseline * pop_uk * 365.25
 fats_year_baseline = fats_cap_day_baseline * pop_uk * 365.25
 co2e_year_baseline = co2e_cap_day_baseline * pop_uk * 365.25
 
+# Dictionaries to call values on the GUI
 baseline = {"Weight":food_year_baseline,
             "Energy":kcal_year_baseline,
             "Fat":fats_year_baseline,
@@ -103,9 +111,9 @@ baseline_cap_day = {"Weight":food_cap_day_baseline,
             "Emissions":co2e_cap_day_baseline}
 
 bar_plot_limits = {"Weight":5000,
-            "Energy":1500000,
-            "Fat":26000,
-            "Proteins":45000,
+            "Energy":10000,
+            "Fat":250,
+            "Proteins":250,
             "Emissions":18}
 
 group_names = np.unique(food_uk.Item_group.values)
@@ -114,7 +122,8 @@ group_names = np.unique(food_uk.Item_group.values)
 # Atmosferic model - Baseline run
 # -------------------------------
 
-total_emissions_gtco2e_baseline = (co2e_year_baseline["food"]).sum(dim="Item").to_numpy()/1e12
+
+total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e12
 C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, useMultigas=False)
 
 # --------------------------------------------

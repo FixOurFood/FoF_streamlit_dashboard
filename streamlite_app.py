@@ -22,7 +22,7 @@ def update_slider(keys, values):
         st.session_state[key] = value
 
 # Initialize session state with sliders in initial positions to recover later
-for key in ["d1", "d2", "l1", "l2"]:
+for key in ["d1", "d2", "l1", "l2", "l3"]:
     if key not in st.session_state:
         st.session_state[key] = 0
 
@@ -41,8 +41,6 @@ def scale_add(food, element_in, element_out, scale, items=None):
     out[element_out] += dif
 
     return out
-
-
 
 # GUI
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
@@ -100,7 +98,7 @@ with st.sidebar:
 
         foresting_spared = cw.label_plus_slider('Forested spared land fraction',
                                                 min=0, max=100, step=25,
-                                                ratio=(6,4), key='l5')
+                                                ratio=(6,4), key='l3')
 
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['l1', 'l2', 'l3']}, key='reset_l')
         # agroforestry = cw.label_plus_slider('Crop + tree replacement', 0, 4, 0, ratio=(6,4))
@@ -180,8 +178,9 @@ with col2:
                     items=plant_items,
                     scale = scale_sparing_arable)
 
-    # compute new scaled values
+    # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
+    scaling = scaling.where(np.isfinite(scaling), other=1.0)
 
     food_cap_day = food_cap_day_baseline * scaling
     co2e_cap_day = co2e_cap_day_baseline * scaling
@@ -200,7 +199,7 @@ with col2:
     c = None
     f, plot1 = plt.subplots(1, figsize=(5,5))
 
-    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"]).sum(dim="Item").to_numpy()/1e12
+    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e12
     C, F, T = fair.forward.fair_scm(total_emissions_gtco2e, useMultigas=False)
 
     if plot_key == "CO2e emission per food group":
@@ -224,26 +223,28 @@ with col2:
         c_baseline = plot_years_total(co2e_year_item_baseline["food"])
         c=c_items + c_baseline
 
-    elif plot_key == "CO2e concentration":
+    # elif plot_key == "CO2e concentration":
+    #
+    #     # Compute emissions using FAIR
+    #     plot1.plot(co2e_year.Year.values, C_base, c = 'r')
+    #     plot1.plot(co2e_year.Year.values, C, c = 'k')
+    #     plot1.set_ylabel(r"$CO_2$ concentrations (PPM)")
+    #
+    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
+    #     with col2_2:
+    #         st.pyplot(fig=f)
+    #
+    # elif plot_key == "Radiative forcing":
+    #
+    #     # Compute emissions using FAIR
+    #     plot1.plot(co2e_year.Year.values, F_base, c = 'r')
+    #     plot1.plot(co2e_year.Year.values, F, c = 'k')
+    #     plot1.set_ylabel(r"Total Radiative Forcing $(W/m^2)$")
+    #
+    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
+    #     with col2_2:
+    #         st.pyplot(fig=f)
 
-        # Compute emissions using FAIR
-        plot1.plot(co2e_year.Year.values, C_base, c = 'r')
-        plot1.plot(co2e_year.Year.values, C, c = 'k')
-        plot1.set_ylabel(r"$CO_2$ concentrations (PPM)")
-
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            st.pyplot(fig=f)
-    elif plot_key == "Radiative forcing":
-
-        # Compute emissions using FAIR
-        plot1.plot(co2e_year.Year.values, F_base, c = 'r')
-        plot1.plot(co2e_year.Year.values, F, c = 'k')
-        plot1.set_ylabel(r"Total Radiative Forcing $(W/m^2)$")
-
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            st.pyplot(fig=f)
     elif plot_key == "Temperature anomaly":
 
         # Compute emissions using FAIR
@@ -255,8 +256,6 @@ with col2:
         with col2_2:
             st.pyplot(fig=f)
 
-    elif plot_key == "Nutrients":
-        pass
     elif plot_key == "Per capita daily values":
         option_key = st.selectbox("Plot options", list(baseline.keys()))
 
@@ -264,7 +263,7 @@ with col2:
         bar_plot_array.Item_origin.values = np.array(bar_plot_array.Item_origin.values, dtype=str)
         bar_plot_array_groups = bar_plot_array.groupby("Item_origin").sum().rename({"Item_origin":"Item"})
 
-        c = plot_bars_altair(bar_plot_array_groups.sel(Year=2100), show="Item", xlimit = bar_plot_limits[option_key])
+        c = plot_bars_altair(bar_plot_array_groups.sel(Year=2100), show="Item", xlimit = bar_plot_limits[option_key], x_axis_title = x_axis_title[option_key])
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
 
@@ -296,7 +295,7 @@ with col2:
 with col1:
     # MAIN
     st.metric(label="**:thermometer: Temperature rise by 2100 caused by food consumed in the UK**",
-              value="{:.3f} °C".format(T[-1]),
+              value="{:.2f} °C".format(T[-1]),
               delta="{:.2f} °C".format(T[-1]-T_base[-1]))
 
     st.metric(label="**:sunrise_over_mountains: Total area of spared land**",
