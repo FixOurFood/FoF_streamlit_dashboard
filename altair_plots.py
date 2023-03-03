@@ -39,7 +39,7 @@ def plot_years_total(food):
 
     return c
 
-def plot_bars_altair(food, xlimit, show="Item"):
+def plot_bars_altair(food, xlimit, show="Item", x_axis_title=''):
     df = food.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=["production", "imports", "exports", "stock", "losses", "processing", "other", "feed", "seed", "food"])
     df["value_start"] = 0
@@ -70,9 +70,9 @@ def plot_bars_altair(food, xlimit, show="Item"):
     selection = alt.selection_single(on='mouseover')
 
     c = alt.Chart(source).mark_bar().encode(
-        y = alt.Y('variable', sort=None),
+        y = alt.Y('variable', sort=None, axis=alt.Axis(title='')),
         x2 ='value_start:Q',
-        x = alt.X('value_end:Q', scale=alt.Scale(domain=(0, xlimit))),
+        x = alt.X('value_end:Q', scale=alt.Scale(domain=(0, xlimit)), axis=alt.Axis(title=x_axis_title)),
         # x = alt.X('value_end:Q'),
         color='Item',
         opacity=alt.condition(selection, alt.value(1), alt.value(0.7)),
