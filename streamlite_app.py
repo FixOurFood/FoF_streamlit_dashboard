@@ -1,9 +1,14 @@
 import streamlit as st
+
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib import colors
+
 import altair as alt
 import numpy as np
 import xarray as xr
 from millify import millify
+import copy
 
 import custom_widgets as cw
 from glossary import *
@@ -15,6 +20,13 @@ import fair
 from agrifoodpy.food.food_supply import FAOSTAT, Nutrients_FAOSTAT, scale_food, scale_element, plot_years, plot_bars
 
 # Helper Functions
+def scale_map_areas(grade, type, fraction):
+
+    out_map = copy.copy(CEH_pasture_arable)
+
+    out_map = out_map.sel(use=type)
+    
+
 
 # Updates the value of the sliders by settging the session state
 def update_slider(keys, values):
@@ -42,6 +54,14 @@ def scale_add(food, element_in, element_out, scale, items=None):
 
     return out
 
+# function to return the coordinate index of the maximum value along a dimension
+def map_max(map, dim):
+
+    length_dim = len(map[dim].values)
+    map_fixed = map.assign_coords({dim:np.arange(length_dim)})
+
+    return map_fixed.idxmax(dim=dim, skipna=True)
+
 # GUI
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
@@ -59,7 +79,7 @@ with st.sidebar:
                             ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3)
 
         ruminant = cw.label_plus_slider('Reduce ruminant meat consumption',
-                                        min=0,
+                                        min=-100,
                                         max=100,
                                         step=25,
                                         ratio=(6,4),
@@ -154,7 +174,6 @@ with col2:
                      fallback="exports")
 
     # Compute spared and forested land from land use sliders
-
     scale_sparing_pasture = 1 - pasture_sparing/100*np.sum(crops_by_grade[3:5,1])/total_crops_pasture
     scale_sparing_arable = 1 - arable_sparing/100*np.sum(crops_by_grade[3:5,0])/total_crops_arable
 
@@ -162,8 +181,11 @@ with col2:
     spared_land_area_arable= np.sum(crops_by_grade[3:5,0])*arable_sparing/100
 
     spared_land_area = spared_land_area_arable + spared_land_area_pasture
+
     forested_spared_land_area = spared_land_area * foresting_spared / 100
 
+    co2_seq_arable = spared_land_area_arable * foresting_spared / 100 * co2_seq
+    co2_seq_pasture = spared_land_area_pasture * foresting_spared / 100 * co2_seq
     co2_seq_total = forested_spared_land_area * co2_seq
 
     aux = scale_add(food=aux,
@@ -183,23 +205,39 @@ with col2:
     scaling = scaling.where(np.isfinite(scaling), other=1.0)
 
     food_cap_day = food_cap_day_baseline * scaling
-    co2e_cap_day = co2e_cap_day_baseline * scaling
     kcal_cap_day = kcal_cap_day_baseline * scaling
     prot_cap_day = prot_cap_day_baseline * scaling
     fats_cap_day = fats_cap_day_baseline * scaling
+
     co2e_year = co2e_year_baseline * scaling
+    co2e_cap_day = co2e_cap_day_baseline * scaling
 
     scaled_cap_day = {"Weight":food_cap_day,
                       "Emissions":co2e_cap_day,
                       "Energy":kcal_cap_day,
                       "Proteins":prot_cap_day,
                       "Fat":fats_cap_day}
+    
+    # # Adjust the total emissions by subtracting sequestration
 
+    # seq_scaling = co2_seq_arable
+
+    # co2e_year.loc[{"Item":co2e_year["Item_origin"]=="Vegetal Products"}] *= 
+
+    # Adjust the total areas in each pixel
+
+    scaled_CEH_pasture_arable = CEH_pasture_arable.copy(deep=True)
+    scaled_CEH_pasture_arable.loc[{"use":"woodland"}] += CEH_pasture_arable.loc[{"use":"pasture"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_CEH_pasture_arable.loc[{"use":"woodland"}] += CEH_pasture_arable.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_CEH_pasture_arable.loc[{"use":"pasture"}] -= CEH_pasture_arable.loc[{"use":"pasture"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_CEH_pasture_arable.loc[{"use":"arable"}] -= CEH_pasture_arable.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+        
     # Plot
     c = None
     f, plot1 = plt.subplots(1, figsize=(5,5))
 
-    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e12
+    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
+    print(total_emissions_gtco2e)
     C, F, T = fair.forward.fair_scm(total_emissions_gtco2e, useMultigas=False)
 
     if plot_key == "CO2e emission per food group":
@@ -264,6 +302,7 @@ with col2:
         bar_plot_array_groups = bar_plot_array.groupby("Item_origin").sum().rename({"Item_origin":"Item"})
 
         c = plot_bars_altair(bar_plot_array_groups.sel(Year=2100), show="Item", xlimit = bar_plot_limits[option_key], x_axis_title = x_axis_title[option_key])
+
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
 
@@ -271,20 +310,30 @@ with col2:
             option_key = st.selectbox("Plot options", land_options)
 
         if option_key == "Agricultural Land Classification":
-            plot1.imshow(ALC.grade.T,
+            plot1.imshow(ALC_ag_only.grade.T,
                          interpolation="none",
                          origin="lower",
                          cmap = "RdYlGn_r")
-            plot1.axis("off")
 
-        elif option_key == "Crops":
-            with col_opt2:
-                crop_type = st.selectbox("Crop types", use_type_list)
-            plot1.imshow(CEH_pasture_arable.area.sel(use=crop_type).T, interpolation="none", origin="lower", cmap = "RdYlGn_r")
-            plot1.axis("off")
+        elif option_key == "Land use":
+            map_toplot = map_max(scaled_CEH_pasture_arable.area, dim="use")
+            # assign 3 to urban areas
+            map_toplot = map_toplot.where(ALC.grade!=7, other=3)
+
+            #             arable   pasture  woodland   urban    
+            color_list = ['yellow', 'orange', 'green', 'black']
+            labels = ["arable", "pasture", "woodland", "urban"]
+            cmap = colors.ListedColormap(color_list)
+            patches = [ mpatches.Patch(color=color_list[l], label=labels[l] ) for l in range(4) ]
+            plot1.imshow(map_toplot.T, interpolation='none', origin='lower', cmap=cmap)
+            # get the colors of the values, according to the 
+            # create a patch (proxy artist) for every color 
+            # put those patched as legend-handles into the legend
+            plot1.legend(handles=patches, bbox_to_anchor=(0.8, 0.9), loc=2, borderaxespad=0.)
 
         col2_1, col2_2, col2_3 = st.columns((2,6,2))
         with col2_2:
+            plot1.axis("off")
             st.pyplot(fig=f)
 
         # c = plot_land_altair(ALC)
@@ -296,7 +345,7 @@ with col1:
     # MAIN
     st.metric(label="**:thermometer: Temperature rise by 2100 caused by food consumed in the UK**",
               value="{:.2f} °C".format(T[-1]),
-              delta="{:.2f} °C".format(T[-1]-T_base[-1]))
+              delta="{:.2f} °C - Compared to BAU".format(T[-1]-T_base[-1]), delta_color="inverse")
 
     st.metric(label="**:sunrise_over_mountains: Total area of spared land**",
               value=f"{millify(spared_land_area, precision=2)} ha")
