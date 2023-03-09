@@ -78,8 +78,8 @@ with st.sidebar:
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                             ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3)
 
-        ruminant = cw.label_plus_slider('Reduce ruminant meat consumption',
-                                        min=-100,
+        ruminant = 100 - cw.label_plus_slider('Meat consumption Percentage',
+                                        min=0,
                                         max=100,
                                         step=25,
                                         ratio=(6,4),
