@@ -14,21 +14,22 @@ import custom_widgets as cw
 from glossary import *
 from afp_config import *
 from altair_plots import *
+from help_text import *
 
 import fair
 
-from agrifoodpy.food.food_supply import FAOSTAT, Nutrients_FAOSTAT, scale_food, scale_element, plot_years, plot_bars
+from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
+
+
+# FAIR wrapper, needed for caching
+@st.cache_data
+def FAIR_run(emissions_gtco2e):
+    C, F, T = fair.forward.fair_scm(total_emissions_gtco2e, useMultigas=False)
+    return C, F, T
 
 # Helper Functions
-def scale_map_areas(grade, type, fraction):
 
-    out_map = copy.copy(CEH_pasture_arable)
-
-    out_map = out_map.sel(use=type)
-    
-
-
-# Updates the value of the sliders by settging the session state
+# Updates the value of the sliders by setting the session state
 def update_slider(keys, values):
     for key, value in zip(keys, values):
         st.session_state[key] = value
@@ -76,19 +77,15 @@ with st.sidebar:
     with st.expander("**:spaghetti: Dietary interventions**"):
 
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                            ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3)
+                            ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help="casa")
 
         ruminant = cw.label_plus_slider('Reduce ruminant meat consumption',
-                                        min=-100,
-                                        max=100,
-                                        step=25,
+                                        min=0, max=100, step=25,
                                         ratio=(6,4),
                                         key="d1")
 
         meatfree = cw.label_plus_slider('Number of meat free days a week',
-                                        min=0,
-                                        max=7,
-                                        step=1,
+                                        min=0, max=7, step=1,
                                         ratio=(6,4),
                                         key="d2")
 
@@ -174,8 +171,8 @@ with col2:
                      fallback="exports")
 
     # Compute spared and forested land from land use sliders
-    scale_sparing_pasture = 1 - pasture_sparing/100*np.sum(crops_by_grade[3:5,1])/total_crops_pasture
-    scale_sparing_arable = 1 - arable_sparing/100*np.sum(crops_by_grade[3:5,0])/total_crops_arable
+    scale_sparing_pasture = pasture_sparing/100*np.sum(crops_by_grade[3:5,1])/total_crops_pasture
+    scale_sparing_arable = arable_sparing/100*np.sum(crops_by_grade[3:5,0])/total_crops_arable
 
     spared_land_area_pasture = np.sum(crops_by_grade[3:5,1])*pasture_sparing/100
     spared_land_area_arable= np.sum(crops_by_grade[3:5,0])*arable_sparing/100
@@ -188,17 +185,27 @@ with col2:
     co2_seq_pasture = spared_land_area_pasture * foresting_spared / 100 * co2_seq
     co2_seq_total = forested_spared_land_area * co2_seq
 
+    # scale pasture from scale_sparing_pasture slider
+    scale_past_pasture = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    scale_future_pasture = xr.DataArray(data = 1-(scale_sparing_pasture)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_pasture = xr.concat([scale_past_pasture, scale_future_pasture], dim="Year")
+
+    # scale pasture from scale_sparing_pasture slider
+    scale_past_arable = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    scale_future_arable = xr.DataArray(data = 1-(scale_sparing_arable)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_arable = xr.concat([scale_past_arable, scale_future_arable], dim="Year")
+
     aux = scale_add(food=aux,
                     element_in="production",
                     element_out="imports",
                     items=animal_items,
-                    scale = scale_sparing_pasture)
+                    scale = scale_pasture)
 
     aux = scale_add(food=aux,
                     element_in="production",
                     element_out="imports",
                     items=plant_items,
-                    scale = scale_sparing_arable)
+                    scale = scale_arable)
 
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
@@ -237,17 +244,17 @@ with col2:
     f, plot1 = plt.subplots(1, figsize=(5,5))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
-    print(total_emissions_gtco2e)
-    C, F, T = fair.forward.fair_scm(total_emissions_gtco2e, useMultigas=False)
-
+    # C, F, T = fair.forward.fair_scm(, useMultigas=False)
+    C, F, T = FAIR_run(total_emissions_gtco2e)
+    
     if plot_key == "CO2e emission per food group":
 
         # For some reason, xarray does not preserves the coordinates dtypes.
         # Here, we manually assign them to strings again to allow grouping by Non-dimension coordinate strigns
         co2e_year.Item_group.values = np.array(co2e_year.Item_group.values, dtype=str)
         co2e_year_groups = co2e_year.groupby("Item_group").sum().rename({"Item_group":"Item"})
-        c_groups = plot_years_altair(co2e_year_groups["food"], show="Item")
-        c_baseline = plot_years_total(co2e_year_baseline["food"])
+        c_groups = plot_years_altair(co2e_year_groups["food"]/1e6, show="Item")
+        c_baseline = plot_years_total(co2e_year_baseline["food"]/1e6)
         c = c_groups + c_baseline
 
     elif plot_key == "CO2e emission per food item":
@@ -255,10 +262,10 @@ with col2:
         option_key = st.selectbox("Plot options", group_names)
         # Can't index by alternative coordinate name, use xr.where instead and squeeze
         co2e_year_item = co2e_year.sel(Item=co2e_year["Item_group"] == option_key).squeeze()
-        c_items = plot_years_altair(co2e_year_item["food"], show="Item_name")
+        c_items = plot_years_altair(co2e_year_item["food"]/1e6, show="Item_name")
 
         co2e_year_item_baseline = co2e_year_baseline.sel(Item=co2e_year_baseline["Item_group"] == option_key).squeeze()
-        c_baseline = plot_years_total(co2e_year_item_baseline["food"])
+        c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6)
         c=c_items + c_baseline
 
     # elif plot_key == "CO2e concentration":
@@ -303,6 +310,17 @@ with col2:
 
         c = plot_bars_altair(bar_plot_array_groups.sel(Year=2100), show="Item", xlimit = bar_plot_limits[option_key], x_axis_title = x_axis_title[option_key])
 
+    elif plot_key == "Self-sufficiency ratio":
+
+        SSR_scaled = SSR(food_cap_day) 
+
+        col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        with col2_2:
+            plot1.plot(SSR_scaled)
+            plot1.set_ylim(0,1)
+            st.pyplot(fig=f)
+        
+
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
 
@@ -345,13 +363,17 @@ with col1:
     # MAIN
     st.metric(label="**:thermometer: Temperature rise by 2100 caused by food consumed in the UK**",
               value="{:.2f} °C".format(T[-1]),
-              delta="{:.2f} °C - Compared to BAU".format(T[-1]-T_base[-1]), delta_color="inverse")
+              delta="{:.2f} °C - Compared to BAU".format(T[-1]-T_base[-1]), delta_color="inverse",
+              help=temperature_rise_help)
 
     st.metric(label="**:sunrise_over_mountains: Total area of spared land**",
-              value=f"{millify(spared_land_area, precision=2)} ha")
+              value=f"{millify(spared_land_area, precision=2)} ha",
+              help=spared_land_help)
 
     st.metric(label="**:deciduous_tree: Total area of forested land**",
-              value=f"{millify(forested_spared_land_area, precision=2)} ha")
+              value=f"{millify(forested_spared_land_area, precision=2)} ha",
+              help=forested_land_help)
 
     st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested land**",
-              value=f"{millify(co2_seq_total, precision=2)} t CO2/yr")
+              value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
+              help=sequestered_carbon_help)
