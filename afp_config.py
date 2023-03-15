@@ -34,8 +34,11 @@ items_uk = np.hstack(list(groups.values()))
 # ----------------------
 
 area_pop = 826 #UK
+# area_pop = 900 # WORLD
 area_pop_world = 900 #WORLD
+
 area_fao = 229 #UK
+# area_fao = 5000 # WORLD
 years = np.arange(1961, 2101)
 
 # ------------------------------

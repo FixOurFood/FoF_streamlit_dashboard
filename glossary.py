@@ -76,7 +76,8 @@ option_list = ["CO2e emission per food group",
                # "Radiative forcing",
                "Temperature anomaly",
                "Per capita daily values",
-               "Land Use"]
+               "Land Use",
+               "Self-sufficiency ratio"]
 
 FAOSTAT_percapita_items = ["Weight",
                            "Energy",
