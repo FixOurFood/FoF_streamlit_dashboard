@@ -35,7 +35,7 @@ def update_slider(keys, values):
         st.session_state[key] = value
 
 # Initialize session state with sliders in initial positions to recover later
-for key in ["d1", "d2", "l1", "l2", "l3"]:
+for key in ["d1", "d2", "d4", "d5", "l1", "l2", "l3", "l5", "l5", "i1", "i2", "i3", "i4", "i5"]:
     if key not in st.session_state:
         st.session_state[key] = 0
 
@@ -73,31 +73,39 @@ T = None
 
 with st.sidebar:
     # Dietary interventions
-
-    with st.expander("**:spaghetti: Dietary interventions**"):
+    with st.expander("**:spaghetti: Consumer demand**"):
 
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                            ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help="casa")
+                            ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
         ruminant = cw.label_plus_slider('Reduce ruminant meat consumption',
                                         min=0, max=100, step=25,
-                                        ratio=(6,4),
-                                        key="d1")
+                                        # ratio=(6,4),
+                                        key="d1", help=help["sidebar_consumer"][1])
 
         meatfree = cw.label_plus_slider('Number of meat free days a week',
                                         min=0, max=7, step=1,
-                                        ratio=(6,4),
-                                        key="d2")
+                                        # ratio=(6,4),
+                                        key="d2", help=help["sidebar_consumer"][2])
 
         extra_items = cw.label_plus_multiselect('Also exclude from meat free days',
                                         options=['Egg', 'FishSeafood', 'Dairy'],
-                                        key='d3')
+                                        key='d3', help=help["sidebar_consumer"][3])
 
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, []], "keys": ['d1', 'd2', 'd3']}, key='reset_d')
+        waste = cw.label_plus_slider('Food waste and over-eating reduction',
+                                        min=0, max=100, step=25,
+                                        # ratio=(6,4),
+                                        key="d4", help=help["sidebar_consumer"][4])
 
+        labmeat = cw.label_plus_slider('Increase labmeat uptake',
+                                        min=0, max=100, step=25,
+                                        # ratio=(6,4),
+                                        key="d5", help=help["sidebar_consumer"][6])
+        
+        st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
 
     # Farming and Prodction interventions
-    with st.expander("**:earth_africa: Land use and farming interventions**"):
+    with st.expander("**:earth_africa: Land management**"):
 
         # manure = cw.label_plus_slider('Improve manure treatment', 0, 4, 0, ratio=(6,4))
         # breeding = cw.label_plus_slider('Improve breeding', 0, 4, 0, ratio=(6,4))
@@ -107,7 +115,7 @@ with st.sidebar:
 
         pasture_sparing = cw.label_plus_slider('Spared ALC 4 & 5 pasture land fraction',
                                                  min=0, max=100, step=25,
-                                                 ratio=(6,4), key='l1')
+                                                 ratio=(6,4), key='l1', help=help["sidebar_consumer"][1])
 
         arable_sparing = cw.label_plus_slider('Spared ALC 4 & 5 arable land fraction',
                                                 min=0, max=100, step=25,
@@ -116,15 +124,49 @@ with st.sidebar:
         foresting_spared = cw.label_plus_slider('Forested spared land fraction',
                                                 min=0, max=100, step=25,
                                                 ratio=(6,4), key='l3')
+        
+        biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='l4')
+        
+        CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='l5')
 
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['l1', 'l2', 'l3']}, key='reset_l')
+        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['l1', 'l2', 'l3', 'l4', 'l5']}, key='reset_l')
         # agroforestry = cw.label_plus_slider('Crop + tree replacement', 0, 4, 0, ratio=(6,4))
+
+    # Technology and innovation
+    with st.expander("**:gear: Technology and innovation**"):
+
+        CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation',
+                                                 min=0, max=100, step=25,
+                                                 ratio=(6,4), key='i1')
+
+        labmeat_innovation = cw.label_plus_slider('Lab meat production innovation',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='i2')
+
+        agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='i3')
+        
+        incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='i4')
+        
+        radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation',
+                                                min=0, max=100, step=25,
+                                                ratio=(6,4), key='i5')
+        
+        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
     # Policy interventions
     with st.expander("**:office: Policy interventions**"):
         st.write('Policy intervention sliders to be shown here')
 
     with st.expander("Advanced settings"):
+        rda_kcal = st.slider('Recommended daily energy intake', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
 
@@ -207,6 +249,16 @@ with col2:
                     items=plant_items,
                     scale = scale_arable)
 
+    # # Adjust the total emissions by subtracting sequestration
+
+    # Adjust the total percentages in each pixel
+    scaled_LC_type = LC_type.copy(deep=True)
+    scaled_LC_type.loc[{"use":"woodland"}] += LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_LC_type.loc[{"use":"woodland"}] += LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_LC_type.loc[{"use":"grassland"}] -= LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    scaled_LC_type.loc[{"use":"arable"}] -= LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+
+
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
     scaling = scaling.where(np.isfinite(scaling), other=1.0)
@@ -224,24 +276,45 @@ with col2:
                       "Energy":kcal_cap_day,
                       "Proteins":prot_cap_day,
                       "Fat":fats_cap_day}
-    
-    # # Adjust the total emissions by subtracting sequestration
-
-    # seq_scaling = co2_seq_arable
-
-    # co2e_year.loc[{"Item":co2e_year["Item_origin"]=="Vegetal Products"}] *= 
-
-    # Adjust the total areas in each pixel
-
-    scaled_CEH_pasture_arable = CEH_pasture_arable.copy(deep=True)
-    scaled_CEH_pasture_arable.loc[{"use":"woodland"}] += CEH_pasture_arable.loc[{"use":"pasture"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_CEH_pasture_arable.loc[{"use":"woodland"}] += CEH_pasture_arable.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_CEH_pasture_arable.loc[{"use":"pasture"}] -= CEH_pasture_arable.loc[{"use":"pasture"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_CEH_pasture_arable.loc[{"use":"arable"}] -= CEH_pasture_arable.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
         
+    # reduce production and food consumed based on kcal
+    waste_to_reduce = waste/100*(kcal_cap_day["food"].sel(Year=2100).sum(dim="Item") - rda_kcal)
+    waste_factor = waste_to_reduce / kcal_cap_day["food"].sel(Year=2100).sum(dim="Item")
+    waste_factor = waste_factor.to_numpy()
+    
+    # scale food from meatfree slider
+    scale_past_waste = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_waste = xr.concat([scale_past_waste, scale_future_waste], dim="Year")
+
+    aux = kcal_cap_day.copy(deep=True)
+    aux["food"] *= scale_waste
+    delta = kcal_cap_day["food"] - aux["food"]
+    aux["production"] -= delta
+    aux["imports"] += aux["production"].where(aux["production"] < 0)
+    aux["production"] = aux["production"].where(aux["production"] > 0, other=0)
+
+    # compute new scaled values (make sure NaN are set to 1 to avoid issues)
+    scaling = aux / kcal_cap_day
+    scaling = scaling.where(np.isfinite(scaling), other=1.0)
+
+    food_cap_day = food_cap_day * scaling
+    kcal_cap_day = kcal_cap_day * scaling
+    prot_cap_day = prot_cap_day * scaling
+    fats_cap_day = fats_cap_day * scaling
+
+    co2e_year = co2e_year * scaling
+    co2e_cap_day = co2e_cap_day * scaling
+
+    scaled_cap_day = {"Weight":food_cap_day,
+                      "Emissions":co2e_cap_day,
+                      "Energy":kcal_cap_day,
+                      "Proteins":prot_cap_day,
+                      "Fat":fats_cap_day}
+    
     # Plot
     c = None
-    f, plot1 = plt.subplots(1, figsize=(5,5))
+    f, plot1 = plt.subplots(1, figsize=(4,4))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
     # C, F, T = fair.forward.fair_scm(, useMultigas=False)
@@ -268,28 +341,6 @@ with col2:
         c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6)
         c=c_items + c_baseline
 
-    # elif plot_key == "CO2e concentration":
-    #
-    #     # Compute emissions using FAIR
-    #     plot1.plot(co2e_year.Year.values, C_base, c = 'r')
-    #     plot1.plot(co2e_year.Year.values, C, c = 'k')
-    #     plot1.set_ylabel(r"$CO_2$ concentrations (PPM)")
-    #
-    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
-    #     with col2_2:
-    #         st.pyplot(fig=f)
-    #
-    # elif plot_key == "Radiative forcing":
-    #
-    #     # Compute emissions using FAIR
-    #     plot1.plot(co2e_year.Year.values, F_base, c = 'r')
-    #     plot1.plot(co2e_year.Year.values, F, c = 'k')
-    #     plot1.set_ylabel(r"Total Radiative Forcing $(W/m^2)$")
-    #
-    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
-    #     with col2_2:
-    #         st.pyplot(fig=f)
-
     elif plot_key == "Temperature anomaly":
 
         # Compute emissions using FAIR
@@ -310,6 +361,16 @@ with col2:
 
         c = plot_bars_altair(bar_plot_array_groups.sel(Year=2100), show="Item", xlimit = bar_plot_limits[option_key], x_axis_title = x_axis_title[option_key])
 
+        if option_key == "Energy":
+
+            c = c + alt.Chart(pd.DataFrame({
+            'Energy': [rda_kcal],
+            'color': ['red']
+            })).mark_rule().encode(
+            x='Energy:Q',
+            color=alt.Color('color:N', scale=None)
+            )
+
     elif plot_key == "Self-sufficiency ratio":
 
         SSR_scaled = SSR(food_cap_day) 
@@ -328,26 +389,14 @@ with col2:
             option_key = st.selectbox("Plot options", land_options)
 
         if option_key == "Agricultural Land Classification":
-            plot1.imshow(ALC_ag_only.grade.T,
+            plot1.imshow(ALC_ag_only.grade,
                          interpolation="none",
                          origin="lower",
                          cmap = "RdYlGn_r")
 
         elif option_key == "Land use":
-            map_toplot = map_max(scaled_CEH_pasture_arable.area, dim="use")
-            # assign 3 to urban areas
-            map_toplot = map_toplot.where(ALC.grade!=7, other=3)
-
-            #             arable   pasture  woodland   urban    
-            color_list = ['yellow', 'orange', 'green', 'black']
-            labels = ["arable", "pasture", "woodland", "urban"]
-            cmap = colors.ListedColormap(color_list)
-            patches = [ mpatches.Patch(color=color_list[l], label=labels[l] ) for l in range(4) ]
-            plot1.imshow(map_toplot.T, interpolation='none', origin='lower', cmap=cmap)
-            # get the colors of the values, according to the 
-            # create a patch (proxy artist) for every color 
-            # put those patched as legend-handles into the legend
-            plot1.legend(handles=patches, bbox_to_anchor=(0.8, 0.9), loc=2, borderaxespad=0.)
+            map_toplot = map_max(scaled_LC_type, dim="use")
+            plot1.imshow(map_toplot, interpolation='none', origin='lower', cmap=cmap_tar, norm=norm_tar)
 
         col2_1, col2_2, col2_3 = st.columns((2,6,2))
         with col2_2:
@@ -361,19 +410,19 @@ with col2:
 
 with col1:
     # MAIN
-    st.metric(label="**:thermometer: Temperature rise by 2100 caused by food consumed in the UK**",
-              value="{:.2f} °C".format(T[-1]),
-              delta="{:.2f} °C - Compared to BAU".format(T[-1]-T_base[-1]), delta_color="inverse",
+    st.metric(label="**:thermometer: Temperature rise by 2100 with respect to 2020, caused by world food consumed, assuming consumption similar to that of the UK**",
+              value="{:.2f} °C".format(T[-1] - T[-80]),
+              delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
               help=temperature_rise_help)
 
-    st.metric(label="**:sunrise_over_mountains: Total area of spared land**",
+    st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
               value=f"{millify(spared_land_area, precision=2)} ha",
               help=spared_land_help)
 
-    st.metric(label="**:deciduous_tree: Total area of forested land**",
+    st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
               value=f"{millify(forested_spared_land_area, precision=2)} ha",
               help=forested_land_help)
 
-    st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested land**",
+    st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
               value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
               help=sequestered_carbon_help)

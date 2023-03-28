@@ -1,6 +1,6 @@
 # metric cards help text
 
-temperature_rise_help = """ This is help text for a metrics card spanning multiple lines"""
+temperature_rise_help = """ Hello this is a test"""
 
 spared_land_help = """ a """
 

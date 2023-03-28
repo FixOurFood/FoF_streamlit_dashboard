@@ -1,16 +1,25 @@
 import numpy as np
 import xarray as xr
+import pandas as pd
+import streamlit as st
 
-from agrifoodpy import food
 from agrifoodpy.population.population_data import UN
-from agrifoodpy.food.food_supply import FAOSTAT, Nutrients_FAOSTAT, scale_food, plot_years, plot_bars
+from agrifoodpy.food.food_supply import FAOSTAT, Nutrients_FAOSTAT
 from agrifoodpy.impact.impact import PN18_FAOSTAT
 from agrifoodpy.impact import impact
 
-from agrifoodpy.land.land import ALC_5000 as ALC
-from agrifoodpy.land.land import CEH_5000 as CEH
+from agrifoodpy.land.land import ALC_1000 as ALC
+from agrifoodpy.land.land import CEH_1000 as CEH
+from agrifoodpy.land.land import CEHLCperagg_1000 as LC
 
 import fair
+
+
+# ------------------------
+# Help and tooltip strings
+# ------------------------
+
+help = pd.read_csv(st.secrets["tooltips_url"])
 
 groups = {
     "Cereals" : np.array([2511, 2513, 2514, 2515, 2516, 2517, 2518, 2520, 2531, 2532, 2533, 2534, 2535, 2807]),
@@ -138,7 +147,7 @@ C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, 
 land_options = ["Agricultural Land Classification", "Land use"]
 
 CEH = CEH.sel(Year=2021)
-ALC_ag_only = ALC.where(ALC.grade < 6).where(ALC.grade > 0)
+ALC_ag_only = ALC.where((ALC.grade < 6) & (ALC.grade > 0))
 
 crop_types = CEH.Type.values
 
@@ -146,7 +155,7 @@ pasture_land_types = "gr"
 arable_land_types = list(crop_types)
 arable_land_types.remove("gr")
 
-#
+# Create a new label coordinate to classify types of crops
 use_type_list = ["arable", "pasture", "urban"]
 use_type = ["arable", "arable", "pasture", "arable",
             "arable", "arable", "arable", "arable",
@@ -170,23 +179,77 @@ crop_strings = ["Beet",
                 "Winter wheat ",
                ]
 
+# And assign it to the CEH dataset
 CEH = CEH.assign_coords({"use":("Type", use_type)})
 CEH = CEH.assign_coords({"Crop name":("Type", crop_strings)})
 
+# Create a new dataset with the same coordinates names, but this time "use" is referring to arable/pasture/urban use
 CEH_pasture_arable = CEH.groupby("use").sum()
 CEH_pasture_arable = CEH_pasture_arable.where(CEH_pasture_arable!=0)
 CEH_pasture_arable = CEH_pasture_arable.assign_coords({"use":use_type_list})
 
-woodland_array = CEH_pasture_arable.sel(use="arable")
-woodland_array = woodland_array.assign_coords({"use":"woodland"})
-woodland_array = woodland_array.where(np.isnan(woodland_array), other=0)
-CEH_pasture_arable = xr.concat((CEH_pasture_arable, woodland_array), dim="use")
-CEH_pasture_arable = CEH_pasture_arable.sel(use=["arable", "pasture", "woodland", "urban"])
+# This is probably a very inneficient way of appending an extra use type to the "use" coordinate 
+woodland_array = CEH_pasture_arable.sel(use="arable") #copy the arable coordinate
+woodland_array = woodland_array.assign_coords({"use":"woodland"}) #rename it to woodland
+woodland_array = woodland_array.where(np.isnan(woodland_array), other=0) #assign all non-nan values to zero
+CEH_pasture_arable = xr.concat((CEH_pasture_arable, woodland_array), dim="use") # concatenate along the "use" dimension
+CEH_pasture_arable = CEH_pasture_arable.sel(use=["arable", "pasture", "woodland", "urban"]) #rearrange the use coordinate
 
-
+# Here we compute the crop areas by grade
 crops_by_grade = [[CEH_pasture_arable.area.where(ALC_ag_only.grade==grade).sel(use=use).sum(dim=("x", "y")).values for use in use_type_list] for grade in np.arange(1,6)]
 crops_by_grade = np.array(crops_by_grade)
 crops_by_grade /= 10000
 
 total_crops_arable = np.sum(crops_by_grade[:,0])
 total_crops_pasture = np.sum(crops_by_grade[:,1])
+
+
+# Let's do the same, this time with LC map instead of Crop maps
+
+lamd_map_size = ALC_ag_only.grade.shape
+LC = LC.percentage[:, :lamd_map_size[0], :lamd_map_size[1]]
+
+# Category strings
+
+# ['Broadleaf woodland',
+# 'Coniferous woodland',
+# 'Arable',
+# 'Improved grassland',
+# 'Semi-natural grassland',
+# 'Mountain, heath and bog',
+# 'Saltwater',
+# 'Freshwater',
+# 'Coastal',
+# 'Built-up areas and gardens']
+
+# Use strings
+
+# ['arable',
+#  'grassland',
+#  'mountain',
+#  'urban',
+#  'water',
+#  'woodland']
+
+
+# make a color map of fixed colors
+from matplotlib import colors
+
+#              arable    grassland mountain urban    water   woodland 
+color_list = ["yellow", "orange", "gray", "gray", "gray", "green"]
+cmap_tar = colors.ListedColormap(color_list)
+bounds_tar = np.linspace(-0.5, 5.5, 7)
+norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
+
+category_type = ["woodland", "woodland", "arable", "grassland", "grassland", "mountain", "water", "water", "water", "urban"]
+
+# And assign it to the LC dataset
+LC = LC.assign_coords({"use":("Category", category_type)})
+
+# Create a new dataset with the same coordinates names, but this time "use" is referring to arable/pasture/urban use
+LC_type = LC.groupby("use").sum()
+LC_type = LC_type.where(~np.isnan(ALC.grade)) # make sure everyhting equal to zero is nan 
+
+# use by grade
+use_by_grade = [[LC_type[cat].where(ALC.grade==grade).sum(dim=("x", "y")).values/100 for cat in np.arange(6)] for grade in np.arange(0,8)]
+use_by_grade = np.array(use_by_grade)
