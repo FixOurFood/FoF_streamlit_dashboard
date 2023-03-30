@@ -13,14 +13,16 @@ from agrifoodpy.land.land import CEH_1000 as CEH
 from agrifoodpy.land.land import CEHLCperagg_1000 as LC
 
 import fair
-
+from helper_functions import *
 
 # ------------------------
 # Help and tooltip strings
 # ------------------------
-
 help = pd.read_csv(st.secrets["tooltips_url"])
 
+# ------------------------
+# Item base
+# ------------------------
 groups = {
     "Cereals" : np.array([2511, 2513, 2514, 2515, 2516, 2517, 2518, 2520, 2531, 2532, 2533, 2534, 2535, 2807]),
     "Pulses" : np.array([2546, 2547, 2549, 2555]),

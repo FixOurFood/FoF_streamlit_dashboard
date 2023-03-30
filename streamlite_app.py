@@ -8,60 +8,16 @@ import altair as alt
 import numpy as np
 import xarray as xr
 from millify import millify
-import copy
+import pandas as pd
 
 import custom_widgets as cw
 from glossary import *
 from afp_config import *
 from altair_plots import *
-from help_text import *
 
-import fair
+from helper_functions import *
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
-
-
-# FAIR wrapper, needed for caching
-@st.cache_data
-def FAIR_run(emissions_gtco2e):
-    C, F, T = fair.forward.fair_scm(total_emissions_gtco2e, useMultigas=False)
-    return C, F, T
-
-# Helper Functions
-
-# Updates the value of the sliders by setting the session state
-def update_slider(keys, values):
-    for key, value in zip(keys, values):
-        st.session_state[key] = value
-
-# Initialize session state with sliders in initial positions to recover later
-for key in ["d1", "d2", "d4", "d5", "l1", "l2", "l3", "l5", "l5", "i1", "i2", "i3", "i4", "i5"]:
-    if key not in st.session_state:
-        st.session_state[key] = 0
-
-if 'd3' not in st.session_state:
-        st.session_state['d3'] = []
-
-# return a logistic function between the input ranges with given k, x0
-def logistic(k, x0, xmin, xmax):
-    return 1 / (1 + np.exp(-k*(np.arange(xmax-xmin) - x0)))
-
-# Function to scale an element and then add the difference to another element
-def scale_add(food, element_in, element_out, scale, items=None):
-
-    out = scale_element(food, element_in, scale, items)
-    dif = food[element_in].fillna(0) - out[element_in].fillna(0)
-    out[element_out] += dif
-
-    return out
-
-# function to return the coordinate index of the maximum value along a dimension
-def map_max(map, dim):
-
-    length_dim = len(map[dim].values)
-    map_fixed = map.assign_coords({dim:np.arange(length_dim)})
-
-    return map_fixed.idxmax(dim=dim, skipna=True)
 
 # GUI
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
@@ -72,39 +28,42 @@ with open('style.css') as f:
 T = None
 
 with st.sidebar:
-    # Dietary interventions
+
+    # st.image("https://fixourfood.org/wp-content/uploads/2021/06/fof_logo.svg")
+
+    # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**"):
 
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                             ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
-        ruminant = cw.label_plus_slider('Reduce ruminant meat consumption',
-                                        min=0, max=100, step=25,
-                                        # ratio=(6,4),
+        # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
+        ruminant = st.slider('Reduce ruminant meat consumption',
+                                        min_value=0, max_value=100, step=25,
                                         key="d1", help=help["sidebar_consumer"][1])
 
-        meatfree = cw.label_plus_slider('Number of meat free days a week',
-                                        min=0, max=7, step=1,
-                                        # ratio=(6,4),
+        # meatfree = cw.label_plus_slider('Number of meat free days a week', ratio=(6,4),
+        meatfree = st.slider('Number of meat free days a week',
+                                        min_value=0, max_value=7, step=1,
                                         key="d2", help=help["sidebar_consumer"][2])
 
         extra_items = cw.label_plus_multiselect('Also exclude from meat free days',
                                         options=['Egg', 'FishSeafood', 'Dairy'],
                                         key='d3', help=help["sidebar_consumer"][3])
 
-        waste = cw.label_plus_slider('Food waste and over-eating reduction',
-                                        min=0, max=100, step=25,
-                                        # ratio=(6,4),
+        # waste = cw.label_plus_slider('Food waste and over-eating reduction', ratio=(6,4),
+        waste = st.slider('Food waste and over-eating reduction',
+                                        min_value=0, max_value=100, step=25,
                                         key="d4", help=help["sidebar_consumer"][4])
 
-        labmeat = cw.label_plus_slider('Increase labmeat uptake',
-                                        min=0, max=100, step=25,
-                                        # ratio=(6,4),
+        # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
+        labmeat = st.slider('Increase labmeat uptake',
+                                        min_value=0, max_value=100, step=25,
                                         key="d5", help=help["sidebar_consumer"][6])
-        
+       
         st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
 
-    # Farming and Prodction interventions
+    # Land management interventions
     with st.expander("**:earth_africa: Land management**"):
 
         # manure = cw.label_plus_slider('Improve manure treatment', 0, 4, 0, ratio=(6,4))
@@ -113,25 +72,30 @@ with st.sidebar:
         # grazing_feedlot = cw.label_plus_slider('Grazing versus feedlot', 0, 4, 0, ratio=(6,4))
         # calves_dairy = cw.label_plus_slider('Use calves from dairy herd', 0, 4, 0, ratio=(6,4))
 
-        pasture_sparing = cw.label_plus_slider('Spared ALC 4 & 5 pasture land fraction',
-                                                 min=0, max=100, step=25,
-                                                 ratio=(6,4), key='l1', help=help["sidebar_consumer"][1])
+        # pasture_sparing = cw.label_plus_slider('Spared ALC 4 & 5 pasture land fraction',ratio=(6,4),
+        pasture_sparing = st.slider('Spared ALC 4 & 5 pasture land fraction',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l1', help=help["sidebar_land"][0])
 
-        arable_sparing = cw.label_plus_slider('Spared ALC 4 & 5 arable land fraction',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='l2')
+        # arable_sparing = cw.label_plus_slider('Spared ALC 4 & 5 arable land fraction',ratio=(6,4),
+        arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l2', help=help["sidebar_land"][1])
 
-        foresting_spared = cw.label_plus_slider('Forested spared land fraction',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='l3')
-        
-        biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='l4')
-        
-        CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='l5')
+        # foresting_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
+        foresting_spared = st.slider('Forested spared land fraction',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l3', help=help["sidebar_land"][2])
+       
+        # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
+        biofuel_spared = st.slider('Biofuel crops spared land fraction',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l4', help=help["sidebar_land"][3])
+       
+        # CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',ratio=(6,4),
+        CCS_spared = st.slider('Carbon capture and storage spared land fraction',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l5', help=help["sidebar_land"][4])
 
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['l1', 'l2', 'l3', 'l4', 'l5']}, key='reset_l')
         # agroforestry = cw.label_plus_slider('Crop + tree replacement', 0, 4, 0, ratio=(6,4))
@@ -139,26 +103,31 @@ with st.sidebar:
     # Technology and innovation
     with st.expander("**:gear: Technology and innovation**"):
 
-        CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation',
-                                                 min=0, max=100, step=25,
-                                                 ratio=(6,4), key='i1')
+        # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
+        CCS_innovation = st.slider('Carbon capture and storage innovation',
+                                                min_value=0, max_value=100, step=25,
+                                                key='i1', help=help["sidebar_innovation"][0])
 
-        labmeat_innovation = cw.label_plus_slider('Lab meat production innovation',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='i2')
+        # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
+        labmeat_innovation = st.slider('Lab meat production innovation',
+                                                min_value=0, max_value=100, step=25,
+                                                key='i2', help=help["sidebar_innovation"][1])
 
-        agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='i3')
-        
-        incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='i4')
-        
-        radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation',
-                                                min=0, max=100, step=25,
-                                                ratio=(6,4), key='i5')
-        
+        # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
+        agg_innovation = st.slider('Inovation to improve aggricultural yield',
+                                                min_value=0, max_value=100, step=25,
+                                                key='i3', help=help["sidebar_innovation"][2])
+       
+        # incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation', ratio=(6,4),
+        incr_GHGE_innovation = st.slider('Incremental GHGE innovation',
+                                                min_value=0, max_value=100, step=25,
+                                                key='i4', help=help["sidebar_innovation"][3])
+       
+        # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
+        radc_GHGE_innovation = st.slider('Radical GHGE innovation',
+                                                min_value=0, max_value=100, step=25,
+                                                key='i5', help=help["sidebar_innovation"][4])
+       
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
     # Policy interventions
@@ -276,12 +245,12 @@ with col2:
                       "Energy":kcal_cap_day,
                       "Proteins":prot_cap_day,
                       "Fat":fats_cap_day}
-        
+       
     # reduce production and food consumed based on kcal
     waste_to_reduce = waste/100*(kcal_cap_day["food"].sel(Year=2100).sum(dim="Item") - rda_kcal)
     waste_factor = waste_to_reduce / kcal_cap_day["food"].sel(Year=2100).sum(dim="Item")
     waste_factor = waste_factor.to_numpy()
-    
+   
     # scale food from meatfree slider
     scale_past_waste = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
     scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
@@ -311,7 +280,7 @@ with col2:
                       "Energy":kcal_cap_day,
                       "Proteins":prot_cap_day,
                       "Fat":fats_cap_day}
-    
+   
     # Plot
     c = None
     f, plot1 = plt.subplots(1, figsize=(4,4))
@@ -319,7 +288,7 @@ with col2:
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
     # C, F, T = fair.forward.fair_scm(, useMultigas=False)
     C, F, T = FAIR_run(total_emissions_gtco2e)
-    
+   
     if plot_key == "CO2e emission per food group":
 
         # For some reason, xarray does not preserves the coordinates dtypes.
@@ -373,14 +342,14 @@ with col2:
 
     elif plot_key == "Self-sufficiency ratio":
 
-        SSR_scaled = SSR(food_cap_day) 
+        SSR_scaled = SSR(food_cap_day)
 
         col2_1, col2_2, col2_3 = st.columns((2,6,2))
         with col2_2:
             plot1.plot(SSR_scaled)
             plot1.set_ylim(0,1)
             st.pyplot(fig=f)
-        
+       
 
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
@@ -413,16 +382,16 @@ with col1:
     st.metric(label="**:thermometer: Temperature rise by 2100 with respect to 2020, caused by world food consumed, assuming consumption similar to that of the UK**",
               value="{:.2f} °C".format(T[-1] - T[-80]),
               delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
-              help=temperature_rise_help)
+              help=help["metrics"][0])
 
     st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
               value=f"{millify(spared_land_area, precision=2)} ha",
-              help=spared_land_help)
+              help=help["metrics"][1])
 
     st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
               value=f"{millify(forested_spared_land_area, precision=2)} ha",
-              help=forested_land_help)
+              help=help["metrics"][2])
 
     st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
               value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
-              help=sequestered_carbon_help)
+              help=help["metrics"][3])
