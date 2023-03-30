@@ -16,11 +16,6 @@ import fair
 from helper_functions import *
 
 # ------------------------
-# Help and tooltip strings
-# ------------------------
-help = pd.read_csv(st.secrets["tooltips_url"])
-
-# ------------------------
 # Item base
 # ------------------------
 groups = {

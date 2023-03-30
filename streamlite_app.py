@@ -19,6 +19,11 @@ from helper_functions import *
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
 
+# ------------------------
+# Help and tooltip strings
+# ------------------------
+help = pd.read_csv(st.secrets["tooltips_url"], dtype='string')
+
 # GUI
 st.set_page_config(layout='wide', initial_sidebar_state='expanded')
 
