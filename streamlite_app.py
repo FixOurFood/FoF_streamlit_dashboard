@@ -187,8 +187,8 @@ with col2:
                      fallback="exports")
 
     # Compute spared and forested land from land use sliders
-    scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[3:5,1])/total_crops_pasture
-    scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[3:5,0])/total_crops_arable
+    scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[4:6,1])/total_crops_pasture
+    scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[4:6,0])/total_crops_arable
 
     print(np.sum(use_by_grade))
 
