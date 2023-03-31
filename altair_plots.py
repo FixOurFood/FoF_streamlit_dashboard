@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-def plot_years_altair(food, show="Item", **kwargs):
+def plot_years_altair(food, show="Item", xlabel=None, **kwargs):
 
     # If no years are found in the dimensions, raise an exception
     sum_dims = list(food.coords)
@@ -19,7 +19,7 @@ def plot_years_altair(food, show="Item", **kwargs):
 
     c = alt.Chart(df).mark_area().encode(
             x=alt.X('Year:O', axis=alt.Axis(values = np.linspace(1970, 2090, 7))),
-            y=alt.Y('sum(value):Q', axis=alt.Axis(format="e", title='Consumed food CO2e emissions [t CO2e / year]')),
+            y=alt.Y('sum(value):Q', axis=alt.Axis(format="e", title=xlabel)),
             color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
             tooltip=f'{show}:N'
@@ -27,14 +27,17 @@ def plot_years_altair(food, show="Item", **kwargs):
 
     return c
 
-def plot_years_total(food):
+def plot_years_total(food, xlabel=None, sumdim=None):
     years = food.Year.values
-    total = food.sum(dim="Item")
+    if sumdim is not None:
+        total = food.sum(dim="Item")
+    else:
+        total = food
 
     df = pd.DataFrame(data={"Year":years, "value":total})
     c = alt.Chart(df).encode(
     alt.X('Year:O', axis=alt.Axis(values = np.linspace(1970, 2090, 7))),
-    alt.Y('sum(value):Q', axis=alt.Axis(format="e", title='Consumed food CO2e emissions [t CO2e / year]'))
+    alt.Y('sum(value):Q', axis=alt.Axis(format="e", title=xlabel))
     ).mark_line(color='red')
 
     return c

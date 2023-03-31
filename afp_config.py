@@ -143,68 +143,69 @@ C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, 
 # Carbon sequestration of forested land in t CO2/ha/yr
 land_options = ["Agricultural Land Classification", "Land use"]
 
-CEH = CEH.sel(Year=2021)
-ALC_ag_only = ALC.where((ALC.grade < 6) & (ALC.grade > 0))
+# CEH = CEH.sel(Year=2021)
+# ALC_ag_only = ALC.where((ALC.grade < 6) & (ALC.grade > 0))
 
-crop_types = CEH.Type.values
+# crop_types = CEH.Type.values
 
-pasture_land_types = "gr"
-arable_land_types = list(crop_types)
-arable_land_types.remove("gr")
+# pasture_land_types = "gr"
+# arable_land_types = list(crop_types)
+# arable_land_types.remove("gr")
 
-# Create a new label coordinate to classify types of crops
-use_type_list = ["arable", "pasture", "urban"]
-use_type = ["arable", "arable", "pasture", "arable",
-            "arable", "arable", "arable", "arable",
-            "arable", "urban", "arable", "arable",
-            "arable", "arable", "arable"]
+# # Create a new label coordinate to classify types of crops
+# use_type_list = ["arable", "pasture", "urban"]
+# use_type = ["arable", "arable", "pasture", "arable",
+#             "arable", "arable", "arable", "arable",
+#             "arable", "urban", "arable", "arable",
+#             "arable", "arable", "arable"]
 
-crop_strings = ["Beet",
-                "Field beans",
-                "Grass",
-                "Maize",
-                "Oilseed rape",
-                "Other crops",
-                "Peas",
-                "Potatoes",
-                "Spring barley",
-                "Solar panels",
-                "Sprint oats",
-                "Spring wheat",
-                "Winter barley",
-                "Winter oats",
-                "Winter wheat ",
-               ]
+# crop_strings = ["Beet",
+#                 "Field beans",
+#                 "Grass",
+#                 "Maize",
+#                 "Oilseed rape",
+#                 "Other crops",
+#                 "Peas",
+#                 "Potatoes",
+#                 "Spring barley",
+#                 "Solar panels",
+#                 "Sprint oats",
+#                 "Spring wheat",
+#                 "Winter barley",
+#                 "Winter oats",
+#                 "Winter wheat ",
+#                ]
 
-# And assign it to the CEH dataset
-CEH = CEH.assign_coords({"use":("Type", use_type)})
-CEH = CEH.assign_coords({"Crop name":("Type", crop_strings)})
+# # And assign it to the CEH dataset
+# CEH = CEH.assign_coords({"use":("Type", use_type)})
+# CEH = CEH.assign_coords({"Crop name":("Type", crop_strings)})
 
-# Create a new dataset with the same coordinates names, but this time "use" is referring to arable/pasture/urban use
-CEH_pasture_arable = CEH.groupby("use").sum()
-CEH_pasture_arable = CEH_pasture_arable.where(CEH_pasture_arable!=0)
-CEH_pasture_arable = CEH_pasture_arable.assign_coords({"use":use_type_list})
+# # Create a new dataset with the same coordinates names, but this time "use" is referring to arable/pasture/urban use
+# CEH_pasture_arable = CEH.groupby("use").sum()
+# CEH_pasture_arable = CEH_pasture_arable.where(CEH_pasture_arable!=0)
+# CEH_pasture_arable = CEH_pasture_arable.assign_coords({"use":use_type_list})
 
-# This is probably a very inneficient way of appending an extra use type to the "use" coordinate 
-woodland_array = CEH_pasture_arable.sel(use="arable") #copy the arable coordinate
-woodland_array = woodland_array.assign_coords({"use":"woodland"}) #rename it to woodland
-woodland_array = woodland_array.where(np.isnan(woodland_array), other=0) #assign all non-nan values to zero
-CEH_pasture_arable = xr.concat((CEH_pasture_arable, woodland_array), dim="use") # concatenate along the "use" dimension
-CEH_pasture_arable = CEH_pasture_arable.sel(use=["arable", "pasture", "woodland", "urban"]) #rearrange the use coordinate
+# # This is probably a very inneficient way of appending an extra use type to the "use" coordinate 
+# woodland_array = CEH_pasture_arable.sel(use="arable") #copy the arable coordinate
+# woodland_array = woodland_array.assign_coords({"use":"woodland"}) #rename it to woodland
+# woodland_array = woodland_array.where(np.isnan(woodland_array), other=0) #assign all non-nan values to zero
+# CEH_pasture_arable = xr.concat((CEH_pasture_arable, woodland_array), dim="use") # concatenate along the "use" dimension
+# CEH_pasture_arable = CEH_pasture_arable.sel(use=["arable", "pasture", "woodland", "urban"]) #rearrange the use coordinate
 
-# Here we compute the crop areas by grade
-crops_by_grade = [[CEH_pasture_arable.area.where(ALC_ag_only.grade==grade).sel(use=use).sum(dim=("x", "y")).values for use in use_type_list] for grade in np.arange(1,6)]
-crops_by_grade = np.array(crops_by_grade)
-crops_by_grade /= 10000
+# # Here we compute the crop areas by grade
+# crops_by_grade = [[CEH_pasture_arable.area.where(ALC_ag_only.grade==grade).sel(use=use).sum(dim=("x", "y")).values for use in use_type_list] for grade in np.arange(1,6)]
+# crops_by_grade = np.array(crops_by_grade)
+# crops_by_grade /= 10000
 
-total_crops_arable = np.sum(crops_by_grade[:,0])
-total_crops_pasture = np.sum(crops_by_grade[:,1])
+# total_crops_arable = np.sum(crops_by_grade[:,0])
+# total_crops_pasture = np.sum(crops_by_grade[:,1])
 
 
 # Let's do the same, this time with LC map instead of Crop maps
 
-lamd_map_size = ALC_ag_only.grade.shape
-LC = LC.percentage[:, :lamd_map_size[0], :lamd_map_size[1]]
+ALC_ag_only = ALC.where((ALC.grade < 6) & (ALC.grade > 0))
+land_map_size = ALC_ag_only.grade.shape
+LC = LC.percentage[:, :land_map_size[0], :land_map_size[1]]
 
 # Category strings
 
@@ -232,10 +233,10 @@ LC = LC.percentage[:, :lamd_map_size[0], :lamd_map_size[1]]
 # make a color map of fixed colors
 from matplotlib import colors
 
-#              arable    grassland mountain urban    water   woodland 
-color_list = ["yellow", "orange", "gray", "gray", "gray", "green"]
+#              arable    grassland mountain     urban        water        woodland spared
+color_list = ["yellow", "orange", "lightgray", "lightgray", "lightgray", "green", "gray"]
 cmap_tar = colors.ListedColormap(color_list)
-bounds_tar = np.linspace(-0.5, 5.5, 7)
+bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
 norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
 
 category_type = ["woodland", "woodland", "arable", "grassland", "grassland", "mountain", "water", "water", "water", "urban"]
@@ -245,8 +246,19 @@ LC = LC.assign_coords({"use":("Category", category_type)})
 
 # Create a new dataset with the same coordinates names, but this time "use" is referring to arable/pasture/urban use
 LC_type = LC.groupby("use").sum()
-LC_type = LC_type.where(~np.isnan(ALC.grade)) # make sure everyhting equal to zero is nan 
+LC_type = LC_type.where(~np.isnan(ALC.grade)) # make sure everyhting equal to zero (not assigned an ALC grade) is nan 
+
+# # This is probably a very inneficient way of appending an extra use type to the "use" coordinate 
+spared_array = LC_type.sel(use="woodland") #copy the arable coordinate
+spared_array = spared_array.assign_coords({"use":"spared"}) #rename it to spared
+spared_array = spared_array.where(np.isnan(spared_array), other=0) #assign all non-nan values to zero
+LC_type = xr.concat((LC_type, spared_array), dim="use") # concatenate along the "use" dimension
+
+print(LC_type.sel())
 
 # use by grade
-use_by_grade = [[LC_type[cat].where(ALC.grade==grade).sum(dim=("x", "y")).values/100 for cat in np.arange(6)] for grade in np.arange(0,8)]
+use_by_grade = [[LC_type[cat].where(ALC_ag_only.grade==grade).sum(dim=("x", "y")).values/100 for cat in np.arange(7)] for grade in np.arange(6)]
 use_by_grade = np.array(use_by_grade)
+
+total_crops_arable = np.sum(use_by_grade[:,0])
+total_crops_pasture = np.sum(use_by_grade[:,1])

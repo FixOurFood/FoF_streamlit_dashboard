@@ -187,11 +187,13 @@ with col2:
                      fallback="exports")
 
     # Compute spared and forested land from land use sliders
-    scale_sparing_pasture = pasture_sparing/100*np.sum(crops_by_grade[3:5,1])/total_crops_pasture
-    scale_sparing_arable = arable_sparing/100*np.sum(crops_by_grade[3:5,0])/total_crops_arable
+    scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[3:5,1])/total_crops_pasture
+    scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[3:5,0])/total_crops_arable
 
-    spared_land_area_pasture = np.sum(crops_by_grade[3:5,1])*pasture_sparing/100
-    spared_land_area_arable= np.sum(crops_by_grade[3:5,0])*arable_sparing/100
+    print(np.sum(use_by_grade))
+
+    spared_land_area_pasture = np.sum(use_by_grade[4:5,1])*pasture_sparing
+    spared_land_area_arable= np.sum(use_by_grade[4:5,0])*arable_sparing
 
     spared_land_area = spared_land_area_arable + spared_land_area_pasture
 
@@ -227,11 +229,18 @@ with col2:
 
     # Adjust the total percentages in each pixel
     scaled_LC_type = LC_type.copy(deep=True)
-    scaled_LC_type.loc[{"use":"woodland"}] += LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_LC_type.loc[{"use":"woodland"}] += LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_LC_type.loc[{"use":"grassland"}] -= LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
-    scaled_LC_type.loc[{"use":"arable"}] -= LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
 
+    delta_spared_pasture = LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    delta_spared_arable = LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+
+    scaled_LC_type.loc[{"use":"spared"}] += delta_spared_pasture
+    scaled_LC_type.loc[{"use":"spared"}] += delta_spared_arable
+    scaled_LC_type.loc[{"use":"grassland"}] -= delta_spared_pasture
+    scaled_LC_type.loc[{"use":"arable"}] -= delta_spared_arable
+
+    delta_spared_woodland = scaled_LC_type.loc[{"use":"spared"}] * foresting_spared/100 * np.isin(ALC.grade, [4,5])
+    scaled_LC_type.loc[{"use":"woodland"}] += delta_spared_woodland
+    scaled_LC_type.loc[{"use":"spared"}] -= delta_spared_woodland
 
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
@@ -300,8 +309,8 @@ with col2:
         # Here, we manually assign them to strings again to allow grouping by Non-dimension coordinate strigns
         co2e_year.Item_group.values = np.array(co2e_year.Item_group.values, dtype=str)
         co2e_year_groups = co2e_year.groupby("Item_group").sum().rename({"Item_group":"Item"})
-        c_groups = plot_years_altair(co2e_year_groups["food"]/1e6, show="Item")
-        c_baseline = plot_years_total(co2e_year_baseline["food"]/1e6)
+        c_groups = plot_years_altair(co2e_year_groups["food"]/1e6, show="Item", xlabel='Consumed food CO2e emissions [t CO2e / year]')
+        c_baseline = plot_years_total(co2e_year_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
         c = c_groups + c_baseline
 
     elif plot_key == "CO2e emission per food item":
@@ -309,10 +318,10 @@ with col2:
         option_key = st.selectbox("Plot options", group_names)
         # Can't index by alternative coordinate name, use xr.where instead and squeeze
         co2e_year_item = co2e_year.sel(Item=co2e_year["Item_group"] == option_key).squeeze()
-        c_items = plot_years_altair(co2e_year_item["food"]/1e6, show="Item_name")
+        c_items = plot_years_altair(co2e_year_item["food"]/1e6, show="Item_name", xlabel='Consumed food CO2e emissions [t CO2e / year]')
 
         co2e_year_item_baseline = co2e_year_baseline.sel(Item=co2e_year_baseline["Item_group"] == option_key).squeeze()
-        c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6)
+        c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
         c=c_items + c_baseline
 
     elif plot_key == "Temperature anomaly":
@@ -348,12 +357,13 @@ with col2:
     elif plot_key == "Self-sufficiency ratio":
 
         SSR_scaled = SSR(food_cap_day)
+        c = plot_years_total(SSR_scaled, xlabel="SSR")
 
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            plot1.plot(SSR_scaled)
-            plot1.set_ylim(0,1)
-            st.pyplot(fig=f)
+        # col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        # with col2_2:
+        #     plot1.plot(SSR_scaled)
+        #     plot1.set_ylim(0,1)
+        #     st.pyplot(fig=f)
        
 
     elif plot_key == "Land Use":
