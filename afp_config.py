@@ -254,8 +254,6 @@ spared_array = spared_array.assign_coords({"use":"spared"}) #rename it to spared
 spared_array = spared_array.where(np.isnan(spared_array), other=0) #assign all non-nan values to zero
 LC_type = xr.concat((LC_type, spared_array), dim="use") # concatenate along the "use" dimension
 
-print(LC_type.sel())
-
 # use by grade
 use_by_grade = [[LC_type[cat].where(ALC_ag_only.grade==grade).sum(dim=("x", "y")).values/100 for cat in np.arange(7)] for grade in np.arange(6)]
 use_by_grade = np.array(use_by_grade)
