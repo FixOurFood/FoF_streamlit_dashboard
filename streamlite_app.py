@@ -395,7 +395,7 @@ with col2:
 
 with col1:
     # MAIN
-    st.metric(label="**:thermometer: Temperature rise by 2100 with respect to 2020, caused by world food consumed, assuming consumption similar to that of the UK**",
+    st.metric(label="**:thermometer: Surface temperature warming by 2100**",
               value="{:.2f} °C".format(T[-1] - T[-80]),
               delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
               help=help["metrics"][0])
