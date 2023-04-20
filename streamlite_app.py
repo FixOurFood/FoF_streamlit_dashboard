@@ -34,7 +34,7 @@ T = None
 
 with st.sidebar:
 
-    # st.image("https://fixourfood.org/wp-content/uploads/2021/06/fof_logo.svg")
+    st.image("images/fof_logo.png")
 
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**"):
