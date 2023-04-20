@@ -330,7 +330,7 @@ with col2:
         # Compute emissions using FAIR
         plot1.plot(co2e_year.Year.values, T_base, c = 'r')
         plot1.plot(co2e_year.Year.values, T, c = 'k')
-        plot1.set_ylabel(r"Temperature anomaly (K)")
+        plot1.set_ylabel(r"Food temperature anomaly (K) relative to 1961")
 
         col2_1, col2_2, col2_3 = st.columns((2,6,2))
         with col2_2:
@@ -358,7 +358,7 @@ with col2:
     elif plot_key == "Self-sufficiency ratio":
 
         SSR_scaled = SSR(food_cap_day)
-        c = plot_years_total(SSR_scaled, xlabel="SSR")
+        c = plot_years_total(SSR_scaled, xlabel="SSR = Production / (Production + Imports - Exports)")
 
         # col2_1, col2_2, col2_3 = st.columns((2,6,2))
         # with col2_2:
