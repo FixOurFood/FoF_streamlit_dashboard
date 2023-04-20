@@ -35,7 +35,7 @@ T = None
 with st.sidebar:
 
 #     st.image("images/fof_logo.png")
-    st.markdown("# Agrifood Calculator")
+    st.markdown("# AgriFood Calculator")
 
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**"):
