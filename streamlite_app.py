@@ -61,10 +61,10 @@ with st.sidebar:
                                         min_value=0, max_value=100, step=25,
                                         key="d4", help=help["sidebar_consumer"][4])
 
-        # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
-        labmeat = st.slider('Increase labmeat uptake',
-                                        min_value=0, max_value=100, step=25,
-                                        key="d5", help=help["sidebar_consumer"][6])
+#         # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
+#         labmeat = st.slider('Increase labmeat uptake',
+#                                         min_value=0, max_value=100, step=25,
+#                                         key="d5", help=help["sidebar_consumer"][6])
        
         st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
 
@@ -93,14 +93,14 @@ with st.sidebar:
                                                 key='l3', help=help["sidebar_land"][2])
        
         # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
-        biofuel_spared = st.slider('Biofuel crops spared land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l4', help=help["sidebar_land"][3])
+#         biofuel_spared = st.slider('Biofuel crops spared land fraction',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='l4', help=help["sidebar_land"][3])
        
         # CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',ratio=(6,4),
-        CCS_spared = st.slider('Carbon capture and storage spared land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l5', help=help["sidebar_land"][4])
+#         CCS_spared = st.slider('Carbon capture and storage spared land fraction',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='l5', help=help["sidebar_land"][4])
 
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['l1', 'l2', 'l3', 'l4', 'l5']}, key='reset_l')
         # agroforestry = cw.label_plus_slider('Crop + tree replacement', 0, 4, 0, ratio=(6,4))
@@ -108,30 +108,30 @@ with st.sidebar:
     # Technology and innovation
     with st.expander("**:gear: Technology and innovation**"):
 
-        # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
-        CCS_innovation = st.slider('Carbon capture and storage innovation',
-                                                min_value=0, max_value=100, step=25,
-                                                key='i1', help=help["sidebar_innovation"][0])
+#         # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
+#         CCS_innovation = st.slider('Carbon capture and storage innovation',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='i1', help=help["sidebar_innovation"][0])
 
-        # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
-        labmeat_innovation = st.slider('Lab meat production innovation',
-                                                min_value=0, max_value=100, step=25,
-                                                key='i2', help=help["sidebar_innovation"][1])
+#         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
+#         labmeat_innovation = st.slider('Lab meat production innovation',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='i2', help=help["sidebar_innovation"][1])
 
-        # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
-        agg_innovation = st.slider('Inovation to improve aggricultural yield',
-                                                min_value=0, max_value=100, step=25,
-                                                key='i3', help=help["sidebar_innovation"][2])
+#         # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
+#         agg_innovation = st.slider('Inovation to improve aggricultural yield',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='i3', help=help["sidebar_innovation"][2])
        
-        # incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation', ratio=(6,4),
-        incr_GHGE_innovation = st.slider('Incremental GHGE innovation',
-                                                min_value=0, max_value=100, step=25,
-                                                key='i4', help=help["sidebar_innovation"][3])
+#         # incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation', ratio=(6,4),
+#         incr_GHGE_innovation = st.slider('Incremental GHGE innovation',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='i4', help=help["sidebar_innovation"][3])
        
-        # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
-        radc_GHGE_innovation = st.slider('Radical GHGE innovation',
-                                                min_value=0, max_value=100, step=25,
-                                                key='i5', help=help["sidebar_innovation"][4])
+#         # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
+#         radc_GHGE_innovation = st.slider('Radical GHGE innovation',
+#                                                 min_value=0, max_value=100, step=25,
+#                                                 key='i5', help=help["sidebar_innovation"][4])
        
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
