@@ -137,16 +137,16 @@ with st.sidebar:
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
     # Policy interventions
-    with st.expander("**:office: Policy interventions**"):
-        st.write('Policy intervention sliders to be shown here')
+    #with st.expander("**:office: Policy interventions**"):
+    #    st.write('Policy intervention sliders to be shown here')
 
     with st.expander("Advanced settings"):
         rda_kcal = st.slider('Recommended daily energy intake', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
 
-    st.markdown('''--- Created by [FixOurFood](https://github.com/FixOurFood/).''')
-    st.markdown('''--- For feedback, please fill [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
+    st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
+    st.markdown('''--- We would be grateful for your feedback, via [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
 
 
 col1, col2 = st.columns((3,7))
