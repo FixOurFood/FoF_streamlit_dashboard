@@ -150,8 +150,8 @@ with st.sidebar:
         rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
-        max_ghge_animal = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal")
-        max_ghge_plant = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant")
+        max_ghge_animal = st.slider('Maximum animal production reduction GHGE due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
+        max_ghge_plant = st.slider('Maximum plant production reduction of GHGE due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                                     ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
