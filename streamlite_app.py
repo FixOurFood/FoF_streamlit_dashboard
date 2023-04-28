@@ -16,6 +16,7 @@ from afp_config import *
 from altair_plots import *
 
 from helper_functions import *
+from model import *
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
 
@@ -111,25 +112,33 @@ with st.sidebar:
 #                                                 min_value=0, max_value=100, step=25,
 #                                                 key='i1', help=help["sidebar_innovation"][0])
 
-#         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
-#         labmeat_innovation = st.slider('Lab meat production innovation',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i2', help=help["sidebar_innovation"][1])
+        # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
+        labmeat_innovation = st.slider('Lab meat production innovation',
+                                                min_value=0, max_value=4, step=1,
+                                                key='i2', help=help["sidebar_innovation"][1])
 
 #         # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
 #         agg_innovation = st.slider('Inovation to improve aggricultural yield',
 #                                                 min_value=0, max_value=100, step=25,
 #                                                 key='i3', help=help["sidebar_innovation"][2])
        
-#         # incr_GHGE_innovation = cw.label_plus_slider('Incremental GHGE innovation', ratio=(6,4),
-#         incr_GHGE_innovation = st.slider('Incremental GHGE innovation',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i4', help=help["sidebar_innovation"][3])
-       
+        # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
+        incr_GHGE_innovation_crop = st.slider('Incremental crop GHGE innovation',
+                                                min_value=0, max_value=4, step=1,
+                                                key='i4', help=help["sidebar_innovation"][3])
+        
+
+        # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
+        incr_GHGE_innovation_meat = st.slider('Incremental meat GHGE innovation',
+                                                min_value=0, max_value=4, step=1,
+                                                key='i5', help=help["sidebar_innovation"][4])
+        
+        
+
 #         # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
 #         radc_GHGE_innovation = st.slider('Radical GHGE innovation',
 #                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i5', help=help["sidebar_innovation"][4])
+#                                                 key='i6', help=help["sidebar_innovation"][5])
        
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
@@ -138,9 +147,10 @@ with st.sidebar:
     #    st.write('Policy intervention sliders to be shown here')
 
     with st.expander("Advanced settings"):
-        rda_kcal = st.slider('Recommended daily energy intake', min_value=2000, max_value=2500, value=2250)
+        rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
+        max_ghge_red = st.slider('Maximum percentage reduction of GHGH due to innovation', min_value=0, max_value=100, value=30, step=10)
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                                     ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
@@ -158,40 +168,14 @@ with col2:
     nutrient = baseline[scaling_nutrient]
 
     # scale food from ruminant slider
-    scale_past_ruminant = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_ruminant = xr.DataArray(data = 1-(ruminant/100)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
-    scale_ruminant = xr.concat([scale_past_ruminant, scale_future_ruminant], dim="Year")
-
-    aux = scale_food(food=nutrient,
-                         scale= scale_ruminant,
-                         origin="imports",
-                         items=groups["RuminantMeat"],
-                         constant=True,
-                         fallback="exports")
+    aux = ruminant_consumption_model(nutrient, ruminant, n_scale)
 
     # scale food from meatfree slider
-    scale_past_meatfree = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/7)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
-    scale_meatfree = xr.concat([scale_past_meatfree, scale_future_meatfree], dim="Year")
-
-    # add extra items
-    meatfree_items = np.concatenate((groups["RuminantMeat"], groups["OtherMeat"]))
-
-    for item in extra_items:
-        meatfree_items = np.concatenate((meatfree_items, groups[item]))
-
-    aux = scale_food(food=aux,
-                     scale= scale_meatfree,
-                     origin="imports",
-                     items=meatfree_items,
-                     constant=True,
-                     fallback="exports")
+    aux = meatfree_consumption_model(aux, meatfree, extra_items, n_scale)
 
     # Compute spared and forested land from land use sliders
     scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[4:6,1])/total_crops_pasture
     scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[4:6,0])/total_crops_arable
-
-    print(np.sum(use_by_grade))
 
     spared_land_area_pasture = np.sum(use_by_grade[4:5,1])*pasture_sparing
     spared_land_area_arable= np.sum(use_by_grade[4:5,0])*arable_sparing
@@ -252,31 +236,8 @@ with col2:
     prot_cap_day = prot_cap_day_baseline * scaling
     fats_cap_day = fats_cap_day_baseline * scaling
 
-    co2e_year = co2e_year_baseline * scaling
-    co2e_cap_day = co2e_cap_day_baseline * scaling
-
-    scaled_cap_day = {"Weight":food_cap_day,
-                      "Emissions":co2e_cap_day,
-                      "Energy":kcal_cap_day,
-                      "Protein":prot_cap_day,
-                      "Fat":fats_cap_day}
-       
-    # reduce production and food consumed based on kcal
-    waste_to_reduce = waste/100*(kcal_cap_day["food"].sel(Year=2100).sum(dim="Item") - rda_kcal)
-    waste_factor = waste_to_reduce / kcal_cap_day["food"].sel(Year=2100).sum(dim="Item")
-    waste_factor = waste_factor.to_numpy()
-   
-    # scale food from meatfree slider
-    scale_past_waste = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
-    scale_waste = xr.concat([scale_past_waste, scale_future_waste], dim="Year")
-
-    aux = kcal_cap_day.copy(deep=True)
-    aux["food"] *= scale_waste
-    delta = kcal_cap_day["food"] - aux["food"]
-    aux["production"] -= delta
-    aux["imports"] += aux["production"].where(aux["production"] < 0)
-    aux["production"] = aux["production"].where(aux["production"] > 0, other=0)
+    # Compute new consumption values without waste
+    aux = food_waste_model(kcal_cap_day, waste, rda_kcal, n_scale)
 
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / kcal_cap_day
@@ -287,23 +248,49 @@ with col2:
     prot_cap_day = prot_cap_day * scaling
     fats_cap_day = fats_cap_day * scaling
 
-    co2e_year = co2e_year * scaling
-    co2e_cap_day = co2e_cap_day * scaling
+    # Compute yearly and per capita daily emissions1- 0.3*(incr_GHGE_innovation_meat / 4)
 
+    co2e_g_scaled = co2e_g.copy(deep=True)
+    scale_ones = xr.DataArray(data = np.ones(140), coords = {"Year":np.arange(1961,2101)})
+    co2e_g_scaled = co2e_g_scaled*scale_ones
+
+    scale_past_co2e_g = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    ones_items = xr.DataArray(data = np.ones(len(animal_items)), coords = {"Item":animal_items})
+    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge_red/100*incr_GHGE_innovation_crop/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+                                         coords = {"Year":np.arange(2020,2101)})
+    scale_future_co2e_g_meat = xr.DataArray(data = 1-(max_ghge_red/100*incr_GHGE_innovation_meat/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+                                         coords = {"Year":np.arange(2020,2101)})
+
+    scale_co2e_g_meat = xr.concat([scale_past_co2e_g, scale_future_co2e_g_meat], dim="Year")
+    scale_co2e_g_crop = xr.concat([scale_past_co2e_g, scale_future_co2e_g_crop], dim="Year")
+
+    co2e_g_scaled_meat = co2e_g.sel({"Item":animal_items}) * scale_co2e_g_meat
+    co2e_g_scaled_crop = co2e_g.sel({"Item":plant_items}) * scale_co2e_g_crop
+
+    co2e_g_scaled.loc[{"Item":animal_items}] = co2e_g_scaled_meat
+    co2e_g_scaled.loc[{"Item":plant_items}] = co2e_g_scaled_crop
+
+    co2e_cap_day = food_cap_day * co2e_g_scaled
+    co2e_year = co2e_cap_day * pop_uk * 365.25
+
+    # Dictionary for menu
     scaled_cap_day = {"Weight":food_cap_day,
                       "Emissions":co2e_cap_day,
                       "Energy":kcal_cap_day,
                       "Protein":prot_cap_day,
                       "Fat":fats_cap_day}
    
-    # Plot
+    # ----------------------------------------    
+    #                  Plots
+    # ----------------------------------------    
+    
     c = None
     f, plot1 = plt.subplots(1, figsize=(4,4))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
     # C, F, T = fair.forward.fair_scm(, useMultigas=False)
     C, F, T = FAIR_run(total_emissions_gtco2e)
-   
+
     if plot_key == "CO2e emission per food group":
 
         # For some reason, xarray does not preserves the coordinates dtypes.
@@ -313,6 +300,11 @@ with col2:
         c_groups = plot_years_altair(co2e_year_groups["food"]/1e6, show="Item", xlabel='Consumed food CO2e emissions [t CO2e / year]')
         c_baseline = plot_years_total(co2e_year_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
         c = c_groups + c_baseline
+
+        c = c.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15
+        )
 
     elif plot_key == "CO2e emission per food item":
 
@@ -325,16 +317,27 @@ with col2:
         c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
         c=c_items + c_baseline
 
+        c = c.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15
+        )
+
     elif plot_key == "Temperature anomaly":
 
-        # Compute emissions using FAIR
-        plot1.plot(co2e_year.Year.values, T_base, c = 'r')
-        plot1.plot(co2e_year.Year.values, T, c = 'k')
-        plot1.set_ylabel(r"Food temperature anomaly (K) relative to 1961")
+        T_base_xr = xr.DataArray(data=T_base,
+                                 dims=["Year"],
+                                 coords={"Year":years})
 
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            st.pyplot(fig=f)
+        T_xr = xr.DataArray(data=T,
+                                 dims=["Year"],
+                                 coords={"Year":years})
+        
+        c = plot_years_total(T_xr, xlabel="Atmosferic temperature warming [ºC]").mark_line(color='black')
+        c = c + plot_years_total(T_base_xr, xlabel="Atmosferic temperature warming [ºC]")
+        c = c.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15
+            )
 
     elif plot_key == "Per capita daily values":
         option_key = st.selectbox("Plot options", list(baseline.keys()))
@@ -354,18 +357,22 @@ with col2:
             x='Energy:Q',
             color=alt.Color('color:N', scale=None)
             )
+        
+        c = c.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15
+        )
 
     elif plot_key == "Self-sufficiency ratio":
 
         SSR_scaled = SSR(food_cap_day)
         c = plot_years_total(SSR_scaled, xlabel="SSR = Production / (Production + Imports - Exports)")
+        c = c.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15
+            )
 
-        # col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        # with col2_2:
-        #     plot1.plot(SSR_scaled)
-        #     plot1.set_ylim(0,1)
-        #     st.pyplot(fig=f)
-       
+        print(SSR_scaled)
 
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
