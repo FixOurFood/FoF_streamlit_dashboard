@@ -123,13 +123,13 @@ with st.sidebar:
 #                                                 key='i3', help=help["sidebar_innovation"][2])
        
         # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
-        incr_GHGE_innovation_crop = st.slider('Incremental crop GHGE innovation',
+        incr_GHGE_innovation_crop = st.slider('Crop GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i4', help=help["sidebar_innovation"][3])
         
 
         # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
-        incr_GHGE_innovation_meat = st.slider('Incremental meat GHGE innovation',
+        incr_GHGE_innovation_meat = st.slider('Meat GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i5', help=help["sidebar_innovation"][4])
         
@@ -150,7 +150,7 @@ with st.sidebar:
         rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
-        max_ghge_red = st.slider('Maximum percentage reduction of GHGH due to innovation', min_value=0, max_value=100, value=30, step=10)
+        max_ghge_red = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10)
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                                     ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
