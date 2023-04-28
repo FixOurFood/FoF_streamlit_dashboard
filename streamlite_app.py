@@ -113,9 +113,9 @@ with st.sidebar:
 #                                                 key='i1', help=help["sidebar_innovation"][0])
 
         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
-        labmeat_innovation = st.slider('Lab meat production innovation',
-                                                min_value=0, max_value=4, step=1,
-                                                key='i2', help=help["sidebar_innovation"][1])
+        # labmeat_innovation = st.slider('Lab meat production innovation',
+        #                                         min_value=0, max_value=4, step=1,
+        #                                         key='i2', help=help["sidebar_innovation"][1])
 
 #         # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
 #         agg_innovation = st.slider('Inovation to improve aggricultural yield',
