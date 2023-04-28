@@ -123,13 +123,13 @@ with st.sidebar:
 #                                                 key='i3', help=help["sidebar_innovation"][2])
        
         # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
-        incr_GHGE_innovation_crop = st.slider('Crop GHGE innovation',
+        incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i4', help=help["sidebar_innovation"][3])
         
 
         # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
-        incr_GHGE_innovation_meat = st.slider('Meat GHGE innovation',
+        incr_GHGE_innovation_meat = st.slider('Animal production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i5', help=help["sidebar_innovation"][4])
         
@@ -150,7 +150,8 @@ with st.sidebar:
         rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
-        max_ghge_red = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10)
+        max_ghge_animal = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10)
+        max_ghge_plant = st.slider('Maximum percentage reduction of GHGE due to innovation', min_value=0, max_value=100, value=30, step=10)
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                                     ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
@@ -256,9 +257,9 @@ with col2:
 
     scale_past_co2e_g = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
     ones_items = xr.DataArray(data = np.ones(len(animal_items)), coords = {"Item":animal_items})
-    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge_red/100*incr_GHGE_innovation_crop/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge_plant/100*incr_GHGE_innovation_crop/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
                                          coords = {"Year":np.arange(2020,2101)})
-    scale_future_co2e_g_meat = xr.DataArray(data = 1-(max_ghge_red/100*incr_GHGE_innovation_meat/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_co2e_g_meat = xr.DataArray(data = 1-(max_ghge_animal/100*incr_GHGE_innovation_meat/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
                                          coords = {"Year":np.arange(2020,2101)})
 
     scale_co2e_g_meat = xr.concat([scale_past_co2e_g, scale_future_co2e_g_meat], dim="Year")
