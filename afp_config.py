@@ -131,8 +131,10 @@ group_names = np.unique(food_uk.Item_group.values)
 # Atmosferic model - Baseline run
 # -------------------------------
 
+# Convert from grams to Gt /1e15
+# Convert from GtCO2 to GtC /3.664
 
-total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
+total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15/3.664
 C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, useMultigas=False)
 
 # --------------------------------------------

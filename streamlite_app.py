@@ -288,7 +288,7 @@ with col2:
     c = None
     f, plot1 = plt.subplots(1, figsize=(4,4))
 
-    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
+    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15/3.664
     # C, F, T = fair.forward.fair_scm(, useMultigas=False)
     C, F, T = FAIR_run(total_emissions_gtco2e)
 
