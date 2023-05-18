@@ -12,7 +12,7 @@ from agrifoodpy.land.land import ALC_1000 as ALC
 from agrifoodpy.land.land import CEH_1000 as CEH
 from agrifoodpy.land.land import CEHLCperagg_1000 as LC
 
-import fair
+from fair_config import set_fair_base
 from helper_functions import *
 
 # ------------------------
@@ -131,11 +131,16 @@ group_names = np.unique(food_uk.Item_group.values)
 # Atmosferic model - Baseline run
 # -------------------------------
 
-# Convert from grams to Gt /1e15
-# Convert from GtCO2 to GtC /3.664
+# Convert from grams to Gt: /1e15
+total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
 
-total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15/3.664
-C_base, F_base, T_base = fair.forward.fair_scm(total_emissions_gtco2e_baseline, useMultigas=False)
+fair_ref = set_fair_base()
+fair_ref.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e_baseline
+fair_ref.run(progress=False)
+
+T_base = fair_ref.temperature.loc[dict(scenario='afp', layer=0)].values.squeeze()
+F_base = fair_ref.forcing.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
+C_base = fair_ref.concentration.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
 
 # --------------------------------------------
 # Land data - Area for sparing and forestation

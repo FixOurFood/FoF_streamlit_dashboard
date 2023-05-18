@@ -16,5 +16,5 @@ dependencies:
   - pip
   - pip:
     - millify
-    - fair==1.6.4
+    - fair
     - -e git+https://github.com/FixOurFood/AgriFoodPy.git@streamlit_dashboard#egg=agrifoodpy
