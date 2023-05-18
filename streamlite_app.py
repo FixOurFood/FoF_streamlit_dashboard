@@ -14,6 +14,7 @@ import custom_widgets as cw
 from glossary import *
 from afp_config import *
 from altair_plots import *
+from fair_config import set_fair_base
 
 from helper_functions import *
 from model import *
@@ -289,8 +290,14 @@ with col2:
     f, plot1 = plt.subplots(1, figsize=(4,4))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
-    # C, F, T = fair.forward.fair_scm(, useMultigas=False)
-    C, F, T = FAIR_run(total_emissions_gtco2e)
+    
+    fair_run = set_fair_base()
+    fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e
+    fair_run.run(progress=False)
+    
+    T = fair_run.temperature.loc[dict(scenario='afp', layer=0)].values.squeeze()
+    F = fair_run.forcing.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
+    C = fair_run.concentration.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
 
     if plot_key == "CO2e emission per food group":
 
@@ -325,20 +332,33 @@ with col2:
 
     elif plot_key == "Temperature anomaly":
 
-        T_base_xr = xr.DataArray(data=T_base,
+        T_base_xr = xr.DataArray(data=T_base-T_base[-80],
                                  dims=["Year"],
-                                 coords={"Year":years})
+                                 coords={"Year":fair_run.timebounds.astype(int)})
 
-        T_xr = xr.DataArray(data=T,
+        T_xr = xr.DataArray(data=T-T[-80],
                                  dims=["Year"],
-                                 coords={"Year":years})
+                                 coords={"Year":fair_run.timebounds.astype(int)})
+        
         
         c = plot_years_total(T_xr, xlabel="Atmosferic temperature warming [ºC]").mark_line(color='black')
         c = c + plot_years_total(T_base_xr, xlabel="Atmosferic temperature warming [ºC]")
+
         c = c.configure_axis(
             labelFontSize=15,
             titleFontSize=15
             )
+        
+        rules = alt.Chart(pd.DataFrame({
+            'Year': [2020],
+            'color': ['grey']
+            })).mark_rule().encode(
+            x='Year:T',
+            color=alt.Color('color:N', scale=None)
+        )
+        
+        c = c+rules
+
 
     elif plot_key == "Per capita daily values":
         option_key = st.selectbox("Plot options", list(baseline.keys()))
@@ -360,8 +380,8 @@ with col2:
             )
         
         c = c.configure_axis(
-            labelFontSize=15,
-            titleFontSize=15
+            labelFontSize=20,
+            titleFontSize=20
         )
 
     elif plot_key == "Self-sufficiency ratio":
@@ -372,8 +392,6 @@ with col2:
             labelFontSize=15,
             titleFontSize=15
             )
-
-        print(SSR_scaled)
 
     elif plot_key == "Land Use":
         col_opt1, col_opt2 = st.columns((1,1))
