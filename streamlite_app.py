@@ -279,7 +279,7 @@ with col2:
     scaled_cap_day = {"Weight":food_cap_day,
                       "Emissions":co2e_cap_day,
                       "Energy":kcal_cap_day,
-                      "Protein":prot_cap_day,
+                      "Proteins":prot_cap_day,
                       "Fat":fats_cap_day}
    
     # ----------------------------------------    
