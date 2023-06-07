@@ -10,7 +10,7 @@ def ruminant_consumption_model(food, ruminant, n_scale):
     scale_past_ruminant = xr.DataArray(data = np.ones(59),
                                         coords = {"Year":np.arange(1961,2020)})
 
-    scale_future_ruminant = xr.DataArray(data = 1-(ruminant/100)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_ruminant = xr.DataArray(data = 1-(ruminant/100)*logistic(n_scale),
                                         coords = {"Year":np.arange(2020,2101)})
 
     scale_ruminant = xr.concat([scale_past_ruminant, scale_future_ruminant], dim="Year")   
@@ -29,7 +29,7 @@ def meatfree_consumption_model(food, meatfree, extra_items, n_scale):
     scale_past_meatfree = xr.DataArray(data = np.ones(59),
                                        coords = {"Year":np.arange(1961,2020)})
     
-    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/7)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/7)*logistic(n_scale),
                                          coords = {"Year":np.arange(2020,2101)})
     
     scale_meatfree = xr.concat([scale_past_meatfree, scale_future_meatfree], dim="Year")
@@ -57,7 +57,7 @@ def food_waste_model(food, waste, rda_kcal, n_scale):
 
     # scale food from waste slider
     scale_past_waste = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
     scale_waste = xr.concat([scale_past_waste, scale_future_waste], dim="Year")
 
     out = food.copy(deep=True)
@@ -80,7 +80,7 @@ def spare_ALC_model(food, LC, spare_scale, land_type, grades, items, n_scale):
 
     # scale animal products from scale_sparing_pasture slider
     scale_past = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future = xr.DataArray(data = 1-(spare_scale)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_future = xr.DataArray(data = 1-(spare_scale)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
     scale = xr.concat([scale_past, scale_future], dim="Year")
 
     out = scale_add(food=food,
@@ -116,3 +116,23 @@ def sequestered_carbon_model(pasture_sparing, arable_sparing, foresting_spared, 
     co2_seq_total = forested_spared_land_area * co2_seq
 
     return co2_seq_total, spared_land_area, forested_spared_land_area
+
+def cultured_meat_uptake_model(food, labmeat, n_scale, items, new_code=5000):
+    
+    scale_past_labmeat = xr.DataArray(data = np.ones(59),
+                                       coords = {"Year":np.arange(1961,2020)})
+    
+    scale_future_labmeat = xr.DataArray(data = 1-(labmeat/100)*logistic(n_scale),
+                                         coords = {"Year":np.arange(2020,2101)})
+    
+    scale_labmeat = xr.concat([scale_past_labmeat, scale_future_labmeat], dim="Year")
+
+    food_out = food.copy(deep=True)
+
+    food_out.loc[{"Item":items}] *= scale_labmeat
+    
+    delta = (food-food_out).sel(Item=items).sum(dim="Item")
+
+    food_out.loc[{"Item":new_code}] += delta
+
+    return food_out

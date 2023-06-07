@@ -43,13 +43,16 @@ def plot_years_total(food, xlabel=None, sumdim=None):
     return c
 
 def plot_bars_altair(food, xlimit, show="Item", x_axis_title=''):
+
+    n_origins = len(food.Item.values)
+
     df = food.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=["production", "imports", "exports", "stock", "losses", "processing", "other", "feed", "seed", "food"])
     df["value_start"] = 0
     df["value_end"] = 0
 
-    for i in range(4,20):
-        if i%2==0:
+    for i in range(2*n_origins,10*n_origins):
+        if i % n_origins==0:
             temp = df.iloc[i].copy()
             df.iloc[i] = df.iloc[i+1]
             df.iloc[i+1] = temp
@@ -57,13 +60,13 @@ def plot_bars_altair(food, xlimit, show="Item", x_axis_title=''):
             pass
 
     cumul = 0
-    for i in range(4):
+    for i in range(2*n_origins):
         df.loc[i, "value_start"] = cumul
         cumul += df.loc[i, "value"]
         df.loc[i, "value_end"] = cumul
 
     cumul = 0
-    for i in reversed(range(4,20)):
+    for i in reversed(range(2*n_origins,10*n_origins)):
         df.loc[i, "value_start"] = cumul
         cumul += df.loc[i, "value"]
         df.loc[i, "value_end"] = cumul
@@ -77,7 +80,8 @@ def plot_bars_altair(food, xlimit, show="Item", x_axis_title=''):
         x2 ='value_start:Q',
         x = alt.X('value_end:Q', scale=alt.Scale(domain=(0, xlimit)), axis=alt.Axis(title=x_axis_title)),
         # x = alt.X('value_end:Q'),
-        color='Item',
+        # color=alt.Color('Item'),
+        color=alt.Color('Item', scale=alt.Scale(domain=["Animal Products", "Cultured Products", "Vegetal Products"], range=["red", "blue", "green"])),
         opacity=alt.condition(selection, alt.value(1), alt.value(0.7)),
         tooltip='Item:N',
         ).add_selection(selection).properties(height=500)

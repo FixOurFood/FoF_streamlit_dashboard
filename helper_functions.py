@@ -26,8 +26,11 @@ if 'd3' not in st.session_state:
         st.session_state['d3'] = []
 
 # return a logistic function between the input ranges with given k, x0
-def logistic(k, x0, xmin, xmax):
-    return 1 / (1 + np.exp(-k*(np.arange(xmax-xmin) - x0)))
+def logistic(n_scale, xmin=0, xmax=81):
+    k = [2**(1-n) for n in range(5)]
+    k[0] = 100
+    x0 = 10*(-0.01+np.arange(5))
+    return 1 / (1 + np.exp(-k[n_scale]*(np.arange(xmax-xmin) - x0[n_scale])))
 
 # Function to scale an element and then add the difference to another element
 def scale_add(food, element_in, element_out, scale, items=None):

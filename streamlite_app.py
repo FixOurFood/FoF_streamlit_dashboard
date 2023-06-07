@@ -21,6 +21,9 @@ from model import *
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
 
+def change_labmeat_co2e():
+    co2e_g.loc[{"Item":5000}] = st.session_state.labmeat_slider
+
 # ------------------------
 # Help and tooltip strings
 # ------------------------
@@ -36,8 +39,10 @@ T = None
 
 with st.sidebar:
 
-#     st.image("images/fof_logo.png")
+    # st.image("images/fof_logo.png")
     st.markdown("# AgriFood Calculator")
+
+    st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8])
 
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**"):
@@ -61,11 +66,17 @@ with st.sidebar:
                                         min_value=0, max_value=100, step=25,
                                         key="d4", help=help["sidebar_consumer"][4])
 
-#         # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
-#         labmeat = st.slider('Increase labmeat uptake',
-#                                         min_value=0, max_value=100, step=25,
-#                                         key="d5", help=help["sidebar_consumer"][6])
+        # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
+        labmeat = st.slider('Increase cultured meat uptake',
+                                        min_value=0, max_value=100, step=25,
+                                        key="d5", help=help["sidebar_consumer"][6])
        
+
+        extra_items_cultured_string = cw.label_plus_multiselect('Also replace with cultured meat',
+                                        options=['Poultry Meat', 'Pigmeat'],
+                                        key='d6', help=help["sidebar_consumer"][7])
+
+
         st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
 
     # Land management interventions
@@ -93,14 +104,14 @@ with st.sidebar:
                                                 key='l3', help=help["sidebar_land"][2])
        
         # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
-#         biofuel_spared = st.slider('Biofuel crops spared land fraction',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='l4', help=help["sidebar_land"][3])
+        # biofuel_spared = st.slider('Biofuel crops spared land fraction',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='l4', help=help["sidebar_land"][3])
        
         # CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',ratio=(6,4),
-#         CCS_spared = st.slider('Carbon capture and storage spared land fraction',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='l5', help=help["sidebar_land"][4])
+        # CCS_spared = st.slider('Carbon capture and storage spared land fraction',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='l5', help=help["sidebar_land"][4])
 
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['l1', 'l2', 'l3', 'l4', 'l5']}, key='reset_l')
         # agroforestry = cw.label_plus_slider('Crop + tree replacement', 0, 4, 0, ratio=(6,4))
@@ -108,20 +119,20 @@ with st.sidebar:
     # Technology and innovation
     with st.expander("**:gear: Technology and innovation**"):
 
-#         # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
-#         CCS_innovation = st.slider('Carbon capture and storage innovation',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i1', help=help["sidebar_innovation"][0])
+        # # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
+        # CCS_innovation = st.slider('Carbon capture and storage innovation',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='i1', help=help["sidebar_innovation"][0])
 
         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
         # labmeat_innovation = st.slider('Lab meat production innovation',
         #                                         min_value=0, max_value=4, step=1,
         #                                         key='i2', help=help["sidebar_innovation"][1])
 
-#         # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
-#         agg_innovation = st.slider('Inovation to improve aggricultural yield',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i3', help=help["sidebar_innovation"][2])
+        # # agg_innovation = cw.label_plus_slider('Inovation to improve aggricultural yield', ratio=(6,4),
+        # agg_innovation = st.slider('Inovation to improve aggricultural yield',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='i3', help=help["sidebar_innovation"][2])
        
         # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
@@ -136,10 +147,10 @@ with st.sidebar:
         
         
 
-#         # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
-#         radc_GHGE_innovation = st.slider('Radical GHGE innovation',
-#                                                 min_value=0, max_value=100, step=25,
-#                                                 key='i6', help=help["sidebar_innovation"][5])
+        # # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
+        # radc_GHGE_innovation = st.slider('Radical GHGE innovation',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='i6', help=help["sidebar_innovation"][5])
        
         st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
 
@@ -148,8 +159,10 @@ with st.sidebar:
     #    st.write('Policy intervention sliders to be shown here')
 
     with st.expander("Advanced settings"):
+
+        labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider', on_change=change_labmeat_co2e)
         rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
-        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=5, value=2)
+        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=4, value=2)
         co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
         max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
         max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
@@ -192,12 +205,12 @@ with col2:
 
     # scale pasture from scale_sparing_pasture slider
     scale_past_pasture = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_pasture = xr.DataArray(data = 1-(scale_sparing_pasture)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_future_pasture = xr.DataArray(data = 1-(scale_sparing_pasture)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
     scale_pasture = xr.concat([scale_past_pasture, scale_future_pasture], dim="Year")
 
     # scale pasture from scale_sparing_pasture slider
     scale_past_arable = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_arable = xr.DataArray(data = 1-(scale_sparing_arable)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020), coords = {"Year":np.arange(2020,2101)})
+    scale_future_arable = xr.DataArray(data = 1-(scale_sparing_arable)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
     scale_arable = xr.concat([scale_past_arable, scale_future_arable], dim="Year")
 
     aux = scale_add(food=aux,
@@ -250,6 +263,23 @@ with col2:
     prot_cap_day = prot_cap_day * scaling
     fats_cap_day = fats_cap_day * scaling
 
+    # Cultured meat replacement
+    extra_items_cultured_dict = {
+        "Pigmeat" : 2733,
+        "Poultry Meat" : 2734
+    }
+
+    items_cultured = [2731]
+    for item in extra_items_cultured_string:
+        items_cultured.append(extra_items_cultured_dict[item])
+
+    items_cultured = np.unique(items_cultured)
+
+    food_cap_day = cultured_meat_uptake_model(food_cap_day, labmeat, n_scale, items_cultured)
+    kcal_cap_day = cultured_meat_uptake_model(kcal_cap_day, labmeat, n_scale, items_cultured)
+    prot_cap_day = cultured_meat_uptake_model(prot_cap_day, labmeat, n_scale, items_cultured)
+    fats_cap_day = cultured_meat_uptake_model(fats_cap_day, labmeat, n_scale, items_cultured)
+
     # Compute yearly and per capita daily emissions1- 0.3*(incr_GHGE_innovation_meat / 4)
 
     co2e_g_scaled = co2e_g.copy(deep=True)
@@ -258,9 +288,9 @@ with col2:
 
     scale_past_co2e_g = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
     ones_items = xr.DataArray(data = np.ones(len(animal_items)), coords = {"Item":animal_items})
-    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge_plant/100*incr_GHGE_innovation_crop/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge_plant/100*incr_GHGE_innovation_crop/4)*logistic(n_scale),
                                          coords = {"Year":np.arange(2020,2101)})
-    scale_future_co2e_g_meat = xr.DataArray(data = 1-(max_ghge_animal/100*incr_GHGE_innovation_meat/4)*logistic(2**(1-n_scale), 10+5*n_scale, 0, 2101-2020),
+    scale_future_co2e_g_meat = xr.DataArray(data = 1-(max_ghge_animal/100*incr_GHGE_innovation_meat/4)*logistic(n_scale),
                                          coords = {"Year":np.arange(2020,2101)})
 
     scale_co2e_g_meat = xr.concat([scale_past_co2e_g, scale_future_co2e_g_meat], dim="Year")

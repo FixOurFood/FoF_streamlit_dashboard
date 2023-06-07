@@ -79,6 +79,21 @@ option_list = ["CO2e emission per food group",
                "Land Use",
                "Self-sufficiency ratio"]
 
+scenario_list = [
+    "BAU",
+    "CCC Balanced Net Zero",
+    "Safe approach",
+    "Agro-ecology",
+    "Hans off",
+    "Radical technology drive",
+    "BECCS and trees",
+    "Tech and innovation approach to land management",
+    "Consumer demand change push",
+    "Combined focus: demand and agriculture",
+    "Consumer demand, tree planting and agroforestry",
+    "NFU",
+]
+
 FAOSTAT_percapita_items = ["Weight",
                            "Energy",
                            "Fat",

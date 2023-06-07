@@ -63,12 +63,24 @@ proj_pop_ones = xr.ones_like(pop_future)
 # ---------------------------
 co2e_g = PN18_FAOSTAT["GHG Emissions"]
 
+co2e_g_labmeat = co2e_g.sel(Item=2731)
+co2e_g_labmeat["Item"] = 5000
+
+co2e_g = xr.concat((co2e_g, co2e_g_labmeat), dim="Item")
+co2e_g.loc[{"Item":5000}] = 25.0
+
 # -----------------------------------------
 # Select food consumption data from FAOSTAT
 # -----------------------------------------
 
 # 1000Ton_food / Year
 food_uk = FAOSTAT.sel(Region=area_fao, Item=items_uk).drop(["domestic"]).fillna(0)
+food_uk_labmeat = xr.zeros_like(food_uk.sel(Item=2731))
+food_uk_labmeat["Item"] = 5000
+food_uk_labmeat["Item_name"]="Meat, cultured"
+food_uk_labmeat["Item_origin"]="Cultured Products"
+
+food_uk = xr.concat((food_uk, food_uk_labmeat), dim="Item")
 
 meat_items = food_uk.sel(Item=food_uk.Item_group=="Meat").Item.values
 animal_items = food_uk.sel(Item=food_uk.Item_origin=="Animal Products").Item.values
@@ -82,6 +94,22 @@ food_cap_day_baseline = xr.concat([food_cap_day_baseline, food_cap_day_baseline.
 kcal_g = Nutrients_FAOSTAT["kcal"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
 prot_g = Nutrients_FAOSTAT["protein"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
 fats_g = Nutrients_FAOSTAT["fat"].sel(Item=items_uk, Region=area_fao) / food_cap_day_baseline["food"]
+
+kcal_g_labmeat = kcal_g.sel(Item=2731)
+kcal_g_labmeat["Item"]=5000
+kcal_g_labmeat["Item_origin"]="Cultured Products"
+kcal_g = xr.concat((kcal_g, kcal_g_labmeat), dim="Item")
+
+
+prot_g_labmeat = prot_g.sel(Item=2731)
+prot_g_labmeat["Item"]=5000
+prot_g_labmeat["Item_origin"]="Cultured Products"
+prot_g = xr.concat((prot_g, prot_g_labmeat), dim="Item")
+
+fats_g_labmeat = fats_g.sel(Item=2731)
+fats_g_labmeat["Item"]=5000
+fats_g_labmeat["Item_origin"]="Cultured Products"
+fats_g = xr.concat((fats_g, fats_g_labmeat), dim="Item")
 
 # This can give weird numbers in the case of produced/imported items not use for food.
 # We set their nutrient values per mass to zero to avoid issues.
