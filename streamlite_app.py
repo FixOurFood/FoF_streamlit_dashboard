@@ -45,7 +45,7 @@ with st.sidebar:
     st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8])
 
     # Consumer demand interventions
-    with st.expander("**:spaghetti: Consumer demand**"):
+    with st.expander("**:spaghetti: Consumer demand**", expanded=True):
 
         # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
         ruminant = st.slider('Reduce ruminant meat consumption',
@@ -329,6 +329,8 @@ with col2:
     F = fair_run.forcing.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
     C = fair_run.concentration.loc[dict(scenario='afp', specie="CO2")].values.squeeze()
 
+    SSR_scaled = SSR(food_cap_day)
+
     if plot_key == "CO2e emission per food group":
 
         # For some reason, xarray does not preserves the coordinates dtypes.
@@ -416,7 +418,6 @@ with col2:
 
     elif plot_key == "Self-sufficiency ratio":
 
-        SSR_scaled = SSR(food_cap_day)
         c = plot_years_total(SSR_scaled, xlabel="SSR = Production / (Production + Imports - Exports)")
         c = c.configure_axis(
             labelFontSize=15,
@@ -446,24 +447,74 @@ with col2:
 
         # c = plot_land_altair(ALC)
 
+    elif plot_key == "CO2 emissions per sector":
+
+        width = 0.5
+        labels = ["Emissions", "Reductions", "Sequestration"]
+        plot1.bar(labels, [50, 25, 40] ,width, bottom = [0, 25, -15], color=["r", "g", "b"])
+        col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        with col2_2:
+            st.pyplot(fig=f)
+
     if c is not None:
         st.altair_chart(altair_chart=c, use_container_width=True)
 
 with col1:
     # MAIN
-    st.metric(label="**:thermometer: Surface temperature warming by 2100**",
-              value="{:.2f} °C".format(T[-1] - T[-80]),
-              delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
-              help=help["metrics"][0])
 
-    st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
-              value=f"{millify(spared_land_area, precision=2)} ha",
-              help=help["metrics"][1])
+    st.write("## Metrics")
 
-    st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
-              value=f"{millify(forested_spared_land_area, precision=2)} ha",
-              help=help["metrics"][2])
+    # ----------------------------
+    # Environment and biodiversity
+    # ----------------------------
+    with st.expander("Environment and biodiversity", expanded=True):
+        st.metric(label="**:thermometer: Surface temperature warming by 2100**",
+                value="{:.2f} °C".format(T[-1] - T[-80]),
+                delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
+                help=help["metrics"][0])
 
-    st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
-              value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
-              help=help["metrics"][3])
+        st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
+                value=f"{millify(spared_land_area, precision=2)} ha",
+                help=help["metrics"][1])
+        
+
+    # --------
+    # Land use
+    # --------
+    with st.expander("Land use", expanded=False):
+        st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
+                value=f"{millify(spared_land_area, precision=2)} ha",
+                help=help["metrics"][2])
+
+        st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
+                value=f"{millify(forested_spared_land_area, precision=2)} ha",
+                help=help["metrics"][3])
+
+        st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
+                value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
+                help=help["metrics"][4])
+
+
+    # --------------
+    # Socio-economic
+    # --------------
+    with st.expander("Socio-economic"):
+        st.metric(label="**:factory: Public spending on engineered greenhouse gas removal**",
+                value="£100 billion",
+                help=help["metrics"][5])
+        
+        st.metric(label="**:farmer: Public spending on farming subsidy**",
+                value="£100 billion",
+                help=help["metrics"][6])
+
+    # ---------------
+    # Food production
+    # ---------------
+    with st.expander("Food production"):
+        st.metric(label="**:factory: Change in meat and Dairy consumption**",
+                value="30%",
+                help=help["metrics"][7])
+        
+        st.metric(label="**:bar_chart: Food Self-sufficiency ratio**",
+                value="{:.2f} %".format(100*SSR_scaled.sel(Year=2050)),
+                help=help["metrics"][8])
