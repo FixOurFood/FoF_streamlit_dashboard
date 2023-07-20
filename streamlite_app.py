@@ -18,6 +18,7 @@ from fair_config import set_fair_base
 
 from helper_functions import *
 from model import *
+from scenarios import call_scenarios
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
 
@@ -42,7 +43,7 @@ with st.sidebar:
     # st.image("images/fof_logo.png")
     st.markdown("# AgriFood Calculator")
 
-    st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8])
+    st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8], on_change=call_scenarios, key="scenario")
 
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**", expanded=True):
@@ -102,6 +103,18 @@ with st.sidebar:
         foresting_spared = st.slider('Forested spared land fraction',
                                                 min_value=0, max_value=100, step=25,
                                                 key='l3', help=help["sidebar_land"][2])
+
+        
+        # foresting_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
+        silvopasture = st.slider('Farmland % converted to silvopasture',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l4', help=help["sidebar_land"][2])
+        
+
+        # agroforestry_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
+        agroforestry = st.slider('Farmland % converted to agroforestry',
+                                                min_value=0, max_value=100, step=25,
+                                                key='l5', help=help["sidebar_land"][2])
        
         # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
         # biofuel_spared = st.slider('Biofuel crops spared land fraction',
@@ -119,10 +132,28 @@ with st.sidebar:
     # Technology and innovation
     with st.expander("**:gear: Technology and innovation**"):
 
-        # # CCS_innovation = cw.label_plus_slider('Carbon capture and storage innovation', ratio=(6,4),
-        # CCS_innovation = st.slider('Carbon capture and storage innovation',
-        #                                         min_value=0, max_value=100, step=25,
-        #                                         key='i1', help=help["sidebar_innovation"][0])
+        # waste_BECCS = cw.label_plus_slider('BECCS sequestration from waste', ratio=(6,4),
+        waste_BECCS = st.slider('BECCS sequestration from waste',
+                                                min_value=0, max_value=100, step=1,
+                                                key='i1', help=help["sidebar_innovation"][0])
+
+
+        # overseas_BECCS = cw.label_plus_slider('BECCS sequestration from overseas biomass', ratio=(6,4),
+        overseas_BECCS = st.slider('BECCS sequestration from overseas biomass',
+                                                min_value=0, max_value=100, step=1,
+                                                key='i2', help=help["sidebar_innovation"][0])
+
+
+        # land_BECCS = cw.label_plus_slider('Percentage of farmland for BECCS', ratio=(6,4),
+        land_BECCS = st.slider('Percentage of farmland for BECCS',
+                                                min_value=0, max_value=20, step=1,
+                                                key='i3', help=help["sidebar_innovation"][0])
+
+
+        # DACCS = cw.label_plus_slider('DACCS sequestration', ratio=(6,4),
+        DACCS = st.slider('DACCS sequestration',
+                                                min_value=0, max_value=20, step=1,
+                                                key='i4', help=help["sidebar_innovation"][0])
 
         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
         # labmeat_innovation = st.slider('Lab meat production innovation',
@@ -137,13 +168,13 @@ with st.sidebar:
         # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
-                                                key='i4', help=help["sidebar_innovation"][3])
+                                                key='i5', help=help["sidebar_innovation"][3])
         
 
         # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_meat = st.slider('Animal production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
-                                                key='i5', help=help["sidebar_innovation"][4])
+                                                key='i6', help=help["sidebar_innovation"][4])
         
         
 
@@ -152,7 +183,7 @@ with st.sidebar:
         #                                         min_value=0, max_value=100, step=25,
         #                                         key='i6', help=help["sidebar_innovation"][5])
        
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5']}, key='reset_i')
+        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5', 'i6']}, key='reset_i')
 
     # Policy interventions
     #with st.expander("**:office: Policy interventions**"):

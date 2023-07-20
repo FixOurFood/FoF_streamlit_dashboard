@@ -17,13 +17,13 @@ def update_slider(keys, values):
     for key, value in zip(keys, values):
         st.session_state[key] = value
 
-# Initialize session state with sliders in initial positions to recover later
-for key in ["d1", "d2", "d4", "d5", "l1", "l2", "l3", "l5", "l5", "i1", "i2", "i3", "i4", "i5"]:
-    if key not in st.session_state:
-        st.session_state[key] = 0
+# # Initialize session state with sliders in initial positions to recover later
+# for key in ["d1", "d2", "d4", "d5", "l1", "l2", "l3", "l5", "l5", "i1", "i2", "i3", "i4", "i5"]:
+#     if key not in st.session_state:
+#         st.session_state[key] = 0
 
-if 'd3' not in st.session_state:
-        st.session_state['d3'] = []
+# if 'd3' not in st.session_state:
+#         st.session_state['d3'] = []
 
 # return a logistic function between the input ranges with given k, x0
 def logistic(n_scale, xmin=0, xmax=81):
