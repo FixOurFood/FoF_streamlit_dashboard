@@ -138,7 +138,7 @@ co2e_year_baseline = co2e_cap_day_baseline * pop_uk * 365.25
 baseline = {"Weight":food_year_baseline,
             "Energy":kcal_year_baseline,
             "Fat":fats_year_baseline,
-            "Proteins":prot_year_baseline,
+            "Protein":prot_year_baseline,
             "Emissions":co2e_year_baseline}
 
 baseline_cap_day = {"Weight":food_cap_day_baseline,
@@ -295,3 +295,15 @@ use_by_grade = np.array(use_by_grade)
 
 total_crops_arable = np.sum(use_by_grade[:,0])
 total_crops_pasture = np.sum(use_by_grade[:,1])
+
+# This is the total agricultural land in the UK in hectares
+total_agricultural_land_uk = 16.02e6
+total_pasture_land_uk = 11.18e6
+total_arable_land_uk = 4.84e6
+
+# Sequestration from woodland t CO2e / ha / yr
+broadleaf_seq = 5.7
+coniferous_seq = 14
+
+co2_seq_agroforestry = 1.473
+co2_seq_silvopasture = 1.473

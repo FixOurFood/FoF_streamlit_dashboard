@@ -17,10 +17,10 @@ def ruminant_consumption_model(food, ruminant, n_scale):
 
     out = scale_food(food=food,
                          scale= scale_ruminant,
-                         origin="imports",
+                         origin="production",
                          items=groups["RuminantMeat"],
                          constant=True,
-                         fallback="exports")
+                         fallback="imports")
     
     return out
 
@@ -29,7 +29,7 @@ def meatfree_consumption_model(food, meatfree, extra_items, n_scale):
     scale_past_meatfree = xr.DataArray(data = np.ones(59),
                                        coords = {"Year":np.arange(1961,2020)})
     
-    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/7)*logistic(n_scale),
+    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/100)*logistic(n_scale),
                                          coords = {"Year":np.arange(2020,2101)})
     
     scale_meatfree = xr.concat([scale_past_meatfree, scale_future_meatfree], dim="Year")
@@ -41,10 +41,10 @@ def meatfree_consumption_model(food, meatfree, extra_items, n_scale):
 
     out = scale_food(food=food,
                      scale= scale_meatfree,
-                     origin="imports",
+                     origin="production",
                      items=meatfree_items,
                      constant=True,
-                     fallback="exports")
+                     fallback="imports")
     
     return out
 
@@ -136,3 +136,11 @@ def cultured_meat_uptake_model(food, labmeat, n_scale, items, new_code=5000):
     food_out.loc[{"Item":new_code}] += delta
 
     return food_out
+
+def agroforestry_sequestration_model(agroforestry, sequestration):
+
+    return agroforestry/100 * total_arable_land_uk * sequestration
+
+def silvopasture_sequestration_model(silvopasture, sequestration):
+
+    return silvopasture/100 * total_pasture_land_uk * sequestration

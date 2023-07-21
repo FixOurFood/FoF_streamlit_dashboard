@@ -72,13 +72,13 @@ vegetarian_diet_dict = {
 
 option_list = ["CO2e emission per food group",
                "CO2e emission per food item",
-               "CO2 emissions per sector",
                # "CO2e concentration",
                # "Radiative forcing",
                "Temperature anomaly",
                "Per capita daily values",
-               "Land Use",
-               "Self-sufficiency ratio"]
+            #    "Land Use",
+               "Self-sufficiency ratio",
+               "Emissions and sequestration"]
 
 scenario_list = [
     # "BAU",
@@ -98,6 +98,7 @@ scenario_list = [
     "Agroecological farming on all land",
     "Self-sufficiency",
     "Avoid engineered greenhouse gas removal",
+    "Custom"
 ]
 
 FAOSTAT_percapita_items = ["Weight",
@@ -109,5 +110,5 @@ FAOSTAT_percapita_items = ["Weight",
 x_axis_title = {"Weight":"g / cap / day",
                 "Energy":"kcal / cap / day",
                 "Fat":"g fat / cap / day",
-                "Proteins":"g protein / cap / day",
+                "Protein":"g protein / cap / day",
                 "Emissions":"g CO2e / cap / day", }

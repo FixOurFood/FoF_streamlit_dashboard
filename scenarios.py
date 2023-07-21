@@ -11,7 +11,47 @@ values_dict={
     "Avoid engineered greenhouse gas removal":[70,20,0,0,0,0,50,33,33],
 }
 
-def call_scenarios():
     # get scenario state
+def call_scenarios():
     scenario = st.session_state["scenario"]
+    if scenario == "Custom":
+        return
     update_slider(keys, values_dict[scenario])
+
+def change_meatfree():
+    value_meatfree = st.session_state["d2"]
+    land_factor = 65
+    if "Egg" in st.session_state["d3"]:
+        land_factor += 5
+    if "Dairy" in st.session_state["d3"]:
+        land_factor += 30
+
+    new_value_forestry = int(value_meatfree*(land_factor)/100)
+
+    st.session_state["l3"] = new_value_forestry
+    value_silvo = st.session_state["l4"]
+
+    if (value_silvo + new_value_forestry) > 100:
+        st.session_state["l4"] = 100 - new_value_forestry
+
+
+def change_land():
+    value_forestry = st.session_state["l3"]
+    value_silvo = st.session_state["l4"]
+    st.session_state["d2"] = value_forestry
+    st.session_state["d3"] = ["Egg", "Dairy"]
+
+    if (value_silvo + value_forestry) > 100:
+        st.session_state["l4"] = 100 - value_forestry
+
+
+def change_silvo():
+    value_forestry = st.session_state["l3"]
+    value_silvo = st.session_state["l4"]
+
+    if (value_silvo + value_forestry) > 100:
+        st.session_state["l3"] = 100 - value_silvo
+
+    change_land()
+
+        

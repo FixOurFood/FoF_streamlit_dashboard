@@ -18,7 +18,7 @@ from fair_config import set_fair_base
 
 from helper_functions import *
 from model import *
-from scenarios import call_scenarios
+from scenarios import *
 
 from agrifoodpy.food.food_supply import scale_food, scale_element, SSR
 
@@ -43,22 +43,20 @@ with st.sidebar:
     # st.image("images/fof_logo.png")
     st.markdown("# AgriFood Calculator")
 
-    st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8], on_change=call_scenarios, key="scenario")
-
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**", expanded=True):
 
         # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
         ruminant = st.slider('Reduce ruminant meat consumption',
-                                        min_value=0, max_value=100, step=25,
+                                        min_value=0, max_value=100, step=10,
                                         key="d1", help=help["sidebar_consumer"][1])
 
-        # meatfree = cw.label_plus_slider('Number of meat free days a week', ratio=(6,4),
-        meatfree = st.slider('Number of meat free days a week',
-                                        min_value=0, max_value=7, step=1,
+        # meatfree = cw.label_plus_slider('Meat consumption reduction %', ratio=(6,4),
+        meatfree = st.slider('Meat consumption reduction %', on_change= change_meatfree,
+                                        min_value=0, max_value=100, step=5,
                                         key="d2", help=help["sidebar_consumer"][2])
 
-        extra_items = cw.label_plus_multiselect('Also exclude from meat free days',
+        extra_items = cw.label_plus_multiselect('Also exclude from meat free days', on_change=change_meatfree,
                                         options=['Egg', 'FishSeafood', 'Dairy'],
                                         key='d3', help=help["sidebar_consumer"][3])
 
@@ -90,30 +88,30 @@ with st.sidebar:
         # calves_dairy = cw.label_plus_slider('Use calves from dairy herd', 0, 4, 0, ratio=(6,4))
 
         # pasture_sparing = cw.label_plus_slider('Spared ALC 4 & 5 pasture land fraction',ratio=(6,4),
-        pasture_sparing = st.slider('Spared ALC 4 & 5 pasture land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l1', help=help["sidebar_land"][0])
+        # # pasture_sparing = st.slider('Spared ALC 4 & 5 pasture land fraction',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='l1', help=help["sidebar_land"][0])
 
         # arable_sparing = cw.label_plus_slider('Spared ALC 4 & 5 arable land fraction',ratio=(6,4),
-        arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l2', help=help["sidebar_land"][1])
+        # # arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
+        #                                         min_value=0, max_value=100, step=25,
+        #                                         key='l2', help=help["sidebar_land"][1])
 
-        # foresting_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
-        foresting_spared = st.slider('Forested spared land fraction',
-                                                min_value=0, max_value=100, step=25,
+        # foresting = cw.label_plus_slider('Forested farmland percentage',ratio=(6,4),
+        foresting = st.slider('Forested pasture land percentage', on_change=change_land,
+                                                min_value=0, max_value=100, step=5,
                                                 key='l3', help=help["sidebar_land"][2])
 
         
-        # foresting_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
-        silvopasture = st.slider('Farmland % converted to silvopasture',
-                                                min_value=0, max_value=100, step=25,
+        # silvopasture = cw.label_plus_slider('Silvopasture farmland percentage',ratio=(6,4),
+        silvopasture = st.slider('Silvopasture farmland percentage', on_change=change_silvo,
+                                                min_value=0, max_value=100, step=5,
                                                 key='l4', help=help["sidebar_land"][2])
         
 
-        # agroforestry_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
-        agroforestry = st.slider('Farmland % converted to agroforestry',
-                                                min_value=0, max_value=100, step=25,
+        # agroforestry = cw.label_plus_slider('Agroforestry farmland percentage',ratio=(6,4),
+        agroforestry = st.slider('Agroforestry farmland percentage',
+                                                min_value=0, max_value=100, step=5,
                                                 key='l5', help=help["sidebar_land"][2])
        
         # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
@@ -165,7 +163,7 @@ with st.sidebar:
         #                                         min_value=0, max_value=100, step=25,
         #                                         key='i3', help=help["sidebar_innovation"][2])
        
-        # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
+        # incr_GHGE_innovation_crop = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i5', help=help["sidebar_innovation"][3])
@@ -194,12 +192,15 @@ with st.sidebar:
         labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider', on_change=change_labmeat_co2e)
         rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
         n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=4, value=2)
-        co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
+        # co2_seq_forest = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
         max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
         max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
                                     ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
+        
+        broadleaf_coniferous_ratio = st.slider('Broadleaf vs coniferous %', min_value=0, max_value=100, value=60, step=10)
 
+    st.selectbox("Scenario", scenario_list, help=help["sidebar_consumer"][8], key="scenario")
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
     st.markdown('''--- We would be grateful for your feedback, via [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
@@ -209,7 +210,6 @@ col1, col2 = st.columns((3,7))
 
 with col2:
     # MAIN
-    plot_key = st.selectbox("Figure to display", option_list)
 
     nutrient = baseline[scaling_nutrient]
 
@@ -219,59 +219,84 @@ with col2:
     # scale food from meatfree slider
     aux = meatfree_consumption_model(aux, meatfree, extra_items, n_scale)
 
-    # Compute spared and forested land from land use sliders
-    scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[4:6,1])/total_crops_pasture
-    scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[4:6,0])/total_crops_arable
+    # # Compute spared and forested land from land use sliders
+    # scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[4:6,1])/total_crops_pasture
+    # scale_sparing_arable = arable_sparing/100*np.sum(use_by_grade[4:6,0])/total_crops_arable
 
-    spared_land_area_pasture = np.sum(use_by_grade[4:5,1])*pasture_sparing
-    spared_land_area_arable= np.sum(use_by_grade[4:5,0])*arable_sparing
+    # spared_land_area_pasture = np.sum(use_by_grade[4:5,1])*pasture_sparing
+    # spared_land_area_arable= np.sum(use_by_grade[4:5,0])*arable_sparing
 
-    spared_land_area = spared_land_area_arable + spared_land_area_pasture
+    # spared_land_area = spared_land_area_arable + spared_land_area_pasture
 
-    forested_spared_land_area = spared_land_area * foresting_spared / 100
+    # forested_spared_land_area = spared_land_area * foresting_spared / 100
 
-    co2_seq_arable = spared_land_area_arable * foresting_spared / 100 * co2_seq
-    co2_seq_pasture = spared_land_area_pasture * foresting_spared / 100 * co2_seq
-    co2_seq_total = forested_spared_land_area * co2_seq
+    # co2_seq_arable = spared_land_area_arable * foresting_spared / 100 * co2_seq_forest
+    # co2_seq_pasture = spared_land_area_pasture * foresting_spared / 100 * co2_seq_forest
+    # co2_seq_total = forested_spared_land_area * co2_seq_forest
+
+    # # scale pasture from scale_sparing_pasture slider
+    # scale_past_pasture = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    # scale_future_pasture = xr.DataArray(data = 1-(scale_sparing_pasture)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
+    # scale_pasture = xr.concat([scale_past_pasture, scale_future_pasture], dim="Year")
 
     # scale pasture from scale_sparing_pasture slider
-    scale_past_pasture = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_pasture = xr.DataArray(data = 1-(scale_sparing_pasture)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
-    scale_pasture = xr.concat([scale_past_pasture, scale_future_pasture], dim="Year")
 
-    # scale pasture from scale_sparing_pasture slider
-    scale_past_arable = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_arable = xr.DataArray(data = 1-(scale_sparing_arable)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
-    scale_arable = xr.concat([scale_past_arable, scale_future_arable], dim="Year")
+    scale_agroforestry = 0.78 * agroforestry/100
+    scale_silvopasture = 0.48 * silvopasture/100
+
+    scale_past_silvopasture = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    scale_future_silvopasture = xr.DataArray(data = 1-(scale_silvopasture)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
+    scale_silvopasture = xr.concat([scale_past_silvopasture, scale_future_silvopasture], dim="Year")
+
+    scale_past_agroforestry = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+    scale_future_agroforestry = xr.DataArray(data = 1-(scale_agroforestry)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
+    scale_agroforestry = xr.concat([scale_past_agroforestry, scale_future_agroforestry], dim="Year")
 
     aux = scale_add(food=aux,
                     element_in="production",
                     element_out="imports",
                     items=animal_items,
-                    scale = scale_pasture)
+                    scale = scale_silvopasture)
 
     aux = scale_add(food=aux,
                     element_in="production",
                     element_out="imports",
                     items=plant_items,
-                    scale = scale_arable)
+                    scale = scale_agroforestry)
 
+    # ---------------------------------------------------------
     # # Adjust the total emissions by subtracting sequestration
+    # ---------------------------------------------------------
+    forested_area = foresting/100 * total_pasture_land_uk
 
-    # Adjust the total percentages in each pixel
-    scaled_LC_type = LC_type.copy(deep=True)
+    co2_seq_forest = broadleaf_coniferous_ratio/100 * broadleaf_seq + (100-broadleaf_coniferous_ratio)/100 * coniferous_seq
 
-    delta_spared_pasture = LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
-    delta_spared_arable = LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+    forestation_seq =  forested_area* co2_seq_forest
+    agroforestry_seq = agroforestry_sequestration_model(agroforestry, co2_seq_agroforestry)
+    silvopasture_seq = silvopasture_sequestration_model(silvopasture, co2_seq_agroforestry)
 
-    scaled_LC_type.loc[{"use":"spared"}] += delta_spared_pasture
-    scaled_LC_type.loc[{"use":"spared"}] += delta_spared_arable
-    scaled_LC_type.loc[{"use":"grassland"}] -= delta_spared_pasture
-    scaled_LC_type.loc[{"use":"arable"}] -= delta_spared_arable
+    co2_seq_total = forestation_seq + agroforestry_seq + silvopasture_seq
 
-    delta_spared_woodland = scaled_LC_type.loc[{"use":"spared"}] * foresting_spared/100 * np.isin(ALC.grade, [4,5])
-    scaled_LC_type.loc[{"use":"woodland"}] += delta_spared_woodland
-    scaled_LC_type.loc[{"use":"spared"}] -= delta_spared_woodland
+    # ----------------------------------------------------
+    # Change production from agroforestry and silvopasture
+    # ----------------------------------------------------
+
+
+
+    # # Adjust the total percentages in each pixel
+    # scaled_LC_type = LC_type.copy(deep=True)
+
+    # delta_spared_pasture = LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
+    # delta_spared_arable = LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
+
+    # scaled_LC_type.loc[{"use":"spared"}] += delta_spared_pasture
+    # scaled_LC_type.loc[{"use":"spared"}] += delta_spared_arable
+    # scaled_LC_type.loc[{"use":"grassland"}] -= delta_spared_pasture
+    # scaled_LC_type.loc[{"use":"arable"}] -= delta_spared_arable
+
+    # delta_spared_woodland = scaled_LC_type.loc[{"use":"spared"}] * foresting_spared/100 * np.isin(ALC.grade, [4,5])
+    # scaled_LC_type.loc[{"use":"woodland"}] += delta_spared_woodland
+    # scaled_LC_type.loc[{"use":"spared"}] -= delta_spared_woodland
 
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
@@ -311,6 +336,10 @@ with col2:
     prot_cap_day = cultured_meat_uptake_model(prot_cap_day, labmeat, n_scale, items_cultured)
     fats_cap_day = cultured_meat_uptake_model(fats_cap_day, labmeat, n_scale, items_cultured)
 
+    # Update land slider
+
+    animal_scaling = food_cap_day.sel(Year=2100, Item=food_cap_day["Item_origin"]=="Animal Products").sum() / food_cap_day_baseline.sel(Year=2100, Item=food_cap_day["Item_origin"]=="Animal Products").sum()
+
     # Compute yearly and per capita daily emissions1- 0.3*(incr_GHGE_innovation_meat / 4)
 
     co2e_g_scaled = co2e_g.copy(deep=True)
@@ -347,10 +376,14 @@ with col2:
     #                  Plots
     # ----------------------------------------    
     
+    col21, col22 = st.columns((5,5))
+    
+    plot_key = st.selectbox("Figure to display", option_list)
+
     c = None
     f, plot1 = plt.subplots(1, figsize=(4,4))
 
-    total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
+    total_emissions_gtco2e = (co2e_year["production"]*scaling["production"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
     
     fair_run = set_fair_base()
     fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e
@@ -362,14 +395,20 @@ with col2:
 
     SSR_scaled = SSR(food_cap_day)
 
+
+    # For some reason, xarray does not preserves the coordinates dtypes.
+    # Here, we manually assign them to strings again to allow grouping by Non-dimension coordinate strigns
+    co2e_year.Item_group.values = np.array(co2e_year.Item_group.values, dtype=str)
+    co2e_year_groups = co2e_year.groupby("Item_group").sum().rename({"Item_group":"Item"})
+
     if plot_key == "CO2e emission per food group":
 
-        # For some reason, xarray does not preserves the coordinates dtypes.
-        # Here, we manually assign them to strings again to allow grouping by Non-dimension coordinate strigns
-        co2e_year.Item_group.values = np.array(co2e_year.Item_group.values, dtype=str)
-        co2e_year_groups = co2e_year.groupby("Item_group").sum().rename({"Item_group":"Item"})
-        c_groups = plot_years_altair(co2e_year_groups["food"]/1e6, show="Item", xlabel='Consumed food CO2e emissions [t CO2e / year]')
-        c_baseline = plot_years_total(co2e_year_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
+        element_key = st.selectbox("Element to display", ["food", "production", "feed"], index = 1)
+
+        # element_key = "production"
+
+        c_groups = plot_years_altair(co2e_year_groups[element_key]/1e6, show="Item", xlabel=f'{element_key} CO2e emissions [t CO2e / year]')
+        c_baseline = plot_years_total(co2e_year_baseline[element_key]/1e6, xlabel=f'{element_key} CO2e emissions [t CO2e / year]', sumdim="Item")
         c = c_groups + c_baseline
 
         c = c.configure_axis(
@@ -379,13 +418,15 @@ with col2:
 
     elif plot_key == "CO2e emission per food item":
 
+        element_key = st.selectbox("Element to display", ["food", "production", "feed"], index=1)
+
         option_key = st.selectbox("Plot options", group_names)
         # Can't index by alternative coordinate name, use xr.where instead and squeeze
         co2e_year_item = co2e_year.sel(Item=co2e_year["Item_group"] == option_key).squeeze()
-        c_items = plot_years_altair(co2e_year_item["food"]/1e6, show="Item_name", xlabel='Consumed food CO2e emissions [t CO2e / year]')
+        c_items = plot_years_altair(co2e_year_item[element_key]/1e6, show="Item_name", xlabel='Consumed food CO2e emissions [t CO2e / year]')
 
         co2e_year_item_baseline = co2e_year_baseline.sel(Item=co2e_year_baseline["Item_group"] == option_key).squeeze()
-        c_baseline = plot_years_total(co2e_year_item_baseline["food"]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
+        c_baseline = plot_years_total(co2e_year_item_baseline[element_key]/1e6, xlabel='Consumed food CO2e emissions [t CO2e / year]', sumdim="Item")
         c=c_items + c_baseline
 
         c = c.configure_axis(
@@ -455,40 +496,55 @@ with col2:
             titleFontSize=15
             )
 
-    elif plot_key == "Land Use":
-        col_opt1, col_opt2 = st.columns((1,1))
+    # elif plot_key == "Land Use":
+    #     col_opt1, col_opt2 = st.columns((1,1))
 
-        with col_opt1:
-            option_key = st.selectbox("Plot options", land_options)
+    #     with col_opt1:
+    #         option_key = st.selectbox("Plot options", land_options)
 
-        if option_key == "Agricultural Land Classification":
-            plot1.imshow(ALC_ag_only.grade,
-                         interpolation="none",
-                         origin="lower",
-                         cmap = "RdYlGn_r")
+    #     if option_key == "Agricultural Land Classification":
+    #         plot1.imshow(ALC_ag_only.grade,
+    #                      interpolation="none",
+    #                      origin="lower",
+    #                      cmap = "RdYlGn_r")
 
-        elif option_key == "Land use":
-            map_toplot = map_max(scaled_LC_type, dim="use")
-            plot1.imshow(map_toplot, interpolation='none', origin='lower', cmap=cmap_tar, norm=norm_tar)
+    #     elif option_key == "Land use":
+    #         map_toplot = map_max(scaled_LC_type, dim="use")
+    #         plot1.imshow(map_toplot, interpolation='none', origin='lower', cmap=cmap_tar, norm=norm_tar)
 
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            plot1.axis("off")
-            st.pyplot(fig=f)
+    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
+    #     with col2_2:
+    #         plot1.axis("off")
+    #         st.pyplot(fig=f)
 
         # c = plot_land_altair(ALC)
 
-    elif plot_key == "CO2 emissions per sector":
-
-        width = 0.5
-        labels = ["Emissions", "Reductions", "Sequestration"]
-        plot1.bar(labels, [50, 25, 40] ,width, bottom = [0, 25, -15], color=["r", "g", "b"])
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            st.pyplot(fig=f)
-
     if c is not None:
         st.altair_chart(altair_chart=c, use_container_width=True)
+
+    elif plot_key == "Emissions and sequestration":
+
+        f.set_figheight(6)
+        f.set_figwidth(12)
+
+        labels = ["Baseline \n emissions", "Emission \n reductions", "Land \n sequestration", "CCS"]
+        values = np.zeros(4)
+        bottom = np.zeros(4)
+
+        values[0] = co2e_year_baseline["production"].sel(Year=2100).sum()/1e6
+
+        values[1] = co2e_year_baseline["production"].sel(Year=2100).sum()/1e6 - co2e_year_groups["production"].sel(Year=2100).sum()/1e6
+        bottom[1] = co2e_year_groups["production"].sel(Year=2100).sum()/1e6
+
+        values[2] = co2_seq_total
+        bottom[2] = co2e_year_groups["production"].sel(Year=2100).sum()/1e6 - co2_seq_total
+
+        plot1.bar(labels, values, bottom=bottom, color=["orange", "g", "b", "red"])
+        plot1.set_ylim(top=3.3e8)
+
+        plot1.set_yticks([0, 1e8, 2e8, 3e8], ["0", "100M", "200M", "300M"])
+        plot1.set_ylabel("CO2e emissions [t CO2e / year]")
+        st.pyplot(fig=f)
 
 with col1:
     # MAIN
@@ -504,24 +560,28 @@ with col1:
                 delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
                 help=help["metrics"][0])
 
-        st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
-                value=f"{millify(spared_land_area, precision=2)} ha",
-                help=help["metrics"][1])
-        
-
     # --------
     # Land use
     # --------
     with st.expander("Land use", expanded=False):
-        st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
-                value=f"{millify(spared_land_area, precision=2)} ha",
-                help=help["metrics"][2])
+        # st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
+        #         value=f"{millify(spared_land_area, precision=2)} ha",
+        #         help=help["metrics"][2])
 
         st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
-                value=f"{millify(forested_spared_land_area, precision=2)} ha",
+                value=f"{millify(forested_area, precision=2)} ha",
+                help=help["metrics"][3])
+        
+
+        st.metric(label="**:deciduous_tree: Total area pasture land converted to silvopasture**",
+                value=f"{millify(silvopasture / 100 * total_pasture_land_uk, precision=2)} ha",
+                help=help["metrics"][3])
+        
+        st.metric(label="**:deciduous_tree: Total area of arable converted to agroforestry**",
+                value=f"{millify(agroforestry / 100 * total_arable_land_uk, precision=2)} ha",
                 help=help["metrics"][3])
 
-        st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
+        st.metric(label="**:chart_with_downwards_trend: Additional carbon sequestration by land use change**",
                 value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
                 help=help["metrics"][4])
 
@@ -529,21 +589,21 @@ with col1:
     # --------------
     # Socio-economic
     # --------------
-    with st.expander("Socio-economic"):
-        st.metric(label="**:factory: Public spending on engineered greenhouse gas removal**",
-                value="£100 billion",
-                help=help["metrics"][5])
+    # with st.expander("Socio-economic"):
+    #     st.metric(label="**:factory: Public spending on engineered greenhouse gas removal**",
+    #             value="£100 billion",
+    #             help=help["metrics"][5])
         
-        st.metric(label="**:farmer: Public spending on farming subsidy**",
-                value="£100 billion",
-                help=help["metrics"][6])
+    #     st.metric(label="**:farmer: Public spending on farming subsidy**",
+    #             value="£100 billion",
+    #             help=help["metrics"][6])
 
     # ---------------
     # Food production
     # ---------------
     with st.expander("Food production"):
         st.metric(label="**:factory: Change in meat and Dairy consumption**",
-                value="30%",
+                value=f"{meatfree}%",
                 help=help["metrics"][7])
         
         st.metric(label="**:bar_chart: Food Self-sufficiency ratio**",
