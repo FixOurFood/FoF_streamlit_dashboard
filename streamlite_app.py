@@ -46,13 +46,13 @@ with st.sidebar:
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**", expanded=True):
 
-        # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
-        ruminant = st.slider('Reduce ruminant meat consumption',
-                                        min_value=0, max_value=100, step=10,
-                                        key="d1", help=help["sidebar_consumer"][1])
+        # # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
+        # ruminant = st.slider('Reduce ruminant meat consumption',
+        #                                 min_value=0, max_value=100, step=10,
+        #                                 key="d1", help=help["sidebar_consumer"][1])
 
         # meatfree = cw.label_plus_slider('Meat consumption reduction %', ratio=(6,4),
-        meatfree = st.slider('Meat consumption reduction %', on_change= change_meatfree,
+        meatfree = st.slider('Animal consumption reduction %', on_change= change_meatfree,
                                         min_value=0, max_value=100, step=5,
                                         key="d2", help=help["sidebar_consumer"][2])
 
@@ -131,26 +131,26 @@ with st.sidebar:
     with st.expander("**:gear: Technology and innovation**"):
 
         # waste_BECCS = cw.label_plus_slider('BECCS sequestration from waste', ratio=(6,4),
-        waste_BECCS = st.slider('BECCS sequestration from waste',
-                                                min_value=0, max_value=100, step=1,
+        waste_BECCS = st.slider('BECCS sequestration from waste [Mt CO2e / yr]',
+                                                min_value=0, max_value=100, step=5,
                                                 key='i1', help=help["sidebar_innovation"][0])
 
 
         # overseas_BECCS = cw.label_plus_slider('BECCS sequestration from overseas biomass', ratio=(6,4),
-        overseas_BECCS = st.slider('BECCS sequestration from overseas biomass',
-                                                min_value=0, max_value=100, step=1,
+        overseas_BECCS = st.slider('BECCS sequestration from overseas biomass [Mt CO2e / yr]',
+                                                min_value=0, max_value=100, step=5,
                                                 key='i2', help=help["sidebar_innovation"][0])
 
 
-        # land_BECCS = cw.label_plus_slider('Percentage of farmland for BECCS', ratio=(6,4),
-        land_BECCS = st.slider('Percentage of farmland for BECCS',
-                                                min_value=0, max_value=20, step=1,
-                                                key='i3', help=help["sidebar_innovation"][0])
+        # # land_BECCS = cw.label_plus_slider('Percentage of farmland for BECCS', ratio=(6,4),
+        # land_BECCS = st.slider('Percentage of farmland for BECCS',
+        #                                         min_value=0, max_value=20, step=1,
+        #                                         key='i3', help=help["sidebar_innovation"][0])
 
 
         # DACCS = cw.label_plus_slider('DACCS sequestration', ratio=(6,4),
-        DACCS = st.slider('DACCS sequestration',
-                                                min_value=0, max_value=20, step=1,
+        DACCS = st.slider('DACCS sequestration [Mt CO2e / yr]',
+                                                min_value=0, max_value=10, step=1,
                                                 key='i4', help=help["sidebar_innovation"][0])
 
         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
@@ -214,10 +214,10 @@ with col2:
     nutrient = baseline[scaling_nutrient]
 
     # scale food from ruminant slider
-    aux = ruminant_consumption_model(nutrient, ruminant, n_scale)
+    # aux = ruminant_consumption_model(nutrient, ruminant, n_scale)
 
     # scale food from meatfree slider
-    aux = meatfree_consumption_model(aux, meatfree, extra_items, n_scale)
+    aux = meatfree_consumption_model(nutrient, meatfree, extra_items, n_scale)
 
     # # Compute spared and forested land from land use sliders
     # scale_sparing_pasture = pasture_sparing/100*np.sum(use_by_grade[4:6,1])/total_crops_pasture
@@ -276,6 +276,9 @@ with col2:
     silvopasture_seq = silvopasture_sequestration_model(silvopasture, co2_seq_agroforestry)
 
     co2_seq_total = forestation_seq + agroforestry_seq + silvopasture_seq
+    CCS_seq_total = waste_BECCS*1e6 + overseas_BECCS*1e6 + DACCS*1e6
+
+
 
     # ----------------------------------------------------
     # Change production from agroforestry and silvopasture
@@ -283,8 +286,8 @@ with col2:
 
 
 
-    # # Adjust the total percentages in each pixel
-    # scaled_LC_type = LC_type.copy(deep=True)
+    # Adjust the total percentages in each pixel
+    scaled_LC_type = LC_type.copy(deep=True)
 
     # delta_spared_pasture = LC_type.loc[{"use":"grassland"}] * pasture_sparing/100 * np.isin(ALC.grade, [4,5])
     # delta_spared_arable = LC_type.loc[{"use":"arable"}] * arable_sparing/100 * np.isin(ALC.grade, [4,5])
@@ -496,33 +499,33 @@ with col2:
             titleFontSize=15
             )
 
-    # elif plot_key == "Land Use":
-    #     col_opt1, col_opt2 = st.columns((1,1))
+    elif plot_key == "Land Use":
+        col_opt1, col_opt2 = st.columns((1,1))
 
-    #     with col_opt1:
-    #         option_key = st.selectbox("Plot options", land_options)
+        with col_opt1:
+            option_key = st.selectbox("Plot options", land_options)
 
-    #     if option_key == "Agricultural Land Classification":
-    #         plot1.imshow(ALC_ag_only.grade,
-    #                      interpolation="none",
-    #                      origin="lower",
-    #                      cmap = "RdYlGn_r")
+        if option_key == "Agricultural Land Classification":
+            plot1.imshow(ALC_ag_only.grade,
+                         interpolation="none",
+                         origin="lower",
+                         cmap = "RdYlGn_r")
 
-    #     elif option_key == "Land use":
-    #         map_toplot = map_max(scaled_LC_type, dim="use")
-    #         plot1.imshow(map_toplot, interpolation='none', origin='lower', cmap=cmap_tar, norm=norm_tar)
+        elif option_key == "Land use":
+            map_toplot = map_max(scaled_LC_type, dim="use")
+            plot1.imshow(map_toplot, interpolation='none', origin='lower', cmap=cmap_tar, norm=norm_tar)
 
-    #     col2_1, col2_2, col2_3 = st.columns((2,6,2))
-    #     with col2_2:
-    #         plot1.axis("off")
-    #         st.pyplot(fig=f)
+        col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        with col2_2:
+            plot1.axis("off")
+            st.pyplot(fig=f)
 
         # c = plot_land_altair(ALC)
 
     if c is not None:
         st.altair_chart(altair_chart=c, use_container_width=True)
 
-    elif plot_key == "Emissions and sequestration":
+    elif plot_key == "Emissions and sequestration by 2100":
 
         f.set_figheight(6)
         f.set_figwidth(12)
@@ -539,7 +542,18 @@ with col2:
         values[2] = co2_seq_total
         bottom[2] = co2e_year_groups["production"].sel(Year=2100).sum()/1e6 - co2_seq_total
 
+        values[3] = CCS_seq_total
+        bottom[3] = co2e_year_groups["production"].sel(Year=2100).sum()/1e6 - co2_seq_total - CCS_seq_total
+
+        plot1.axhline(bottom[3], color="k", alpha=0.5, linestyle="dashed")
+        plot1.axhline(0, color="k")
+        plot1.text(1, bottom[3]-10e6, f"{millify(bottom[3], precision=2)} [Mt CO2e / year]")
+
+
         plot1.bar(labels, values, bottom=bottom, color=["orange", "g", "b", "red"])
+
+        plot1.bar("Baseline \n emissions", co2e_year_baseline["production"].sel(Year=2019).sum()/1e6, color="k", alpha=0.25)
+
         plot1.set_ylim(top=3.3e8)
 
         plot1.set_yticks([0, 1e8, 2e8, 3e8], ["0", "100M", "200M", "300M"])
@@ -554,7 +568,7 @@ with col1:
     # ----------------------------
     # Environment and biodiversity
     # ----------------------------
-    with st.expander("Environment and biodiversity", expanded=True):
+    with st.expander("Environment and biodiversity", expanded=False):
         st.metric(label="**:thermometer: Surface temperature warming by 2100**",
                 value="{:.2f} °C".format(T[-1] - T[-80]),
                 delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
@@ -563,26 +577,30 @@ with col1:
     # --------
     # Land use
     # --------
-    with st.expander("Land use", expanded=False):
+    with st.expander("Land use", expanded=True):
         # st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
         #         value=f"{millify(spared_land_area, precision=2)} ha",
         #         help=help["metrics"][2])
 
-        st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
+        st.metric(label="**:evergreen_tree::deciduous_tree: Total area of forested agricultural land**",
                 value=f"{millify(forested_area, precision=2)} ha",
                 help=help["metrics"][3])
         
 
-        st.metric(label="**:deciduous_tree: Total area pasture land converted to silvopasture**",
+        st.metric(label="**:cow2::deciduous_tree: Total area pasture land converted to silvopasture**",
                 value=f"{millify(silvopasture / 100 * total_pasture_land_uk, precision=2)} ha",
                 help=help["metrics"][3])
         
-        st.metric(label="**:deciduous_tree: Total area of arable converted to agroforestry**",
+        st.metric(label="**:ear_of_rice::deciduous_tree: Total area of arable converted to agroforestry**",
                 value=f"{millify(agroforestry / 100 * total_arable_land_uk, precision=2)} ha",
                 help=help["metrics"][3])
 
-        st.metric(label="**:chart_with_downwards_trend: Additional carbon sequestration by land use change**",
+        st.metric(label="**:national_park: :arrow_heading_down: Additional carbon sequestration by land use change**",
                 value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
+                help=help["metrics"][4])
+
+        st.metric(label="**:gear::arrow_heading_down: Additional carbon sequestration by Engineered GHG removal**",
+                value=f"{millify(CCS_seq_total, precision=2)} t CO2/yr",
                 help=help["metrics"][4])
 
 

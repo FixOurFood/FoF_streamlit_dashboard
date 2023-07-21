@@ -76,9 +76,9 @@ option_list = ["CO2e emission per food group",
                # "Radiative forcing",
                "Temperature anomaly",
                "Per capita daily values",
-            #    "Land Use",
+               "Land Use",
                "Self-sufficiency ratio",
-               "Emissions and sequestration"]
+               "Emissions and sequestration by 2100"]
 
 scenario_list = [
     # "BAU",
