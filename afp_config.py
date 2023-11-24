@@ -176,7 +176,7 @@ C_base = fair_ref.concentration.loc[dict(scenario='afp', specie="CO2")].values.s
 
 
 # Carbon sequestration of forested land in t CO2/ha/yr
-land_options = ["Agricultural Land Classification", "Land use"]
+land_options = ["Land use", "Agricultural Land Classification"]
 
 # CEH = CEH.sel(Year=2021)
 # ALC_ag_only = ALC.where((ALC.grade < 6) & (ALC.grade > 0))
@@ -269,7 +269,7 @@ LC = LC.percentage[:, :land_map_size[0], :land_map_size[1]]
 from matplotlib import colors
 
 #              arable    grassland mountain     urban        water        woodland spared
-color_list = ["yellow", "orange", "lightgray", "lightgray", "lightgray", "green", "gray"]
+color_list = ["yellow", "orange", "brown", "lightgray", "blue", "green", "gray"]
 cmap_tar = colors.ListedColormap(color_list)
 bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
 norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)

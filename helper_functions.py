@@ -25,6 +25,12 @@ def update_slider(keys, values):
 # if 'd3' not in st.session_state:
 #         st.session_state['d3'] = []
 
+def reset_all_sliders():
+    update_slider(keys=['d1', 'd2', 'd3', 'd4', 'd5'], values=[0, 0, [], 0, 0])
+    update_slider(keys=['l1', 'l2', 'l3', 'l4', 'l5'], values=[0, 0, 0, 0, 0])
+    update_slider(keys=['i1', 'i2', 'i3', 'i4', 'i5', 'i6'], values=[0, 0, 0, 0, 0, 0])
+
+
 # return a logistic function between the input ranges with given k, x0
 def logistic(n_scale, xmin=0, xmax=81):
     k = [2**(1-n) for n in range(5)]

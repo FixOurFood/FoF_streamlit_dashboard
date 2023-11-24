@@ -19,7 +19,7 @@ def plot_years_altair(food, show="Item", xlabel=None, **kwargs):
 
     c = alt.Chart(df).mark_area().encode(
             x=alt.X('Year:O', axis=alt.Axis(values = np.linspace(1960, 2100, 8))),
-            y=alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=xlabel)),
+            y=alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=xlabel), ),
             color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
             tooltip=f'{show}:N'
