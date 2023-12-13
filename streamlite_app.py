@@ -57,7 +57,7 @@ with st.sidebar:
         ruminant = st.slider('Reduce ruminant meat consumption',
                                         min_value=0, max_value=100, step=25,
                                         key="d1", help=help["sidebar_consumer"][1])
-
+        
         # meatfree = cw.label_plus_slider('Number of meat free days a week', ratio=(6,4),
         meatfree = st.slider('Number of meat free days a week',
                                         min_value=0, max_value=7, step=1,
@@ -287,8 +287,6 @@ with col1:
 
     # ***engineered carbon capture***
 
-
-
     # compute new scaled values (make sure NaN are set to 1 to avoid issues)
     scaling = aux / nutrient
     scaling = scaling.where(np.isfinite(scaling), other=1.0)
@@ -510,15 +508,6 @@ with col1:
 
         # c = plot_land_altair(ALC)
 
-    elif plot_key == "CO2 emissions per sector":
-
-        width = 0.5
-        labels = ["Emissions", "Reductions", "Sequestration"]
-        plot1.bar(labels, [50, 25, 40] ,width, bottom = [0, 25, -15], color=["r", "g", "b"])
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
-            st.pyplot(fig=f)
-
     if c is not None:
         st.altair_chart(altair_chart=c, use_container_width=True)
 
@@ -535,11 +524,15 @@ with col2:
                 value="{:.2f} °C".format(T[-1] - T[-80]),
                 delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
                 help=help["metrics"][0])
-
+        
+        st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
+                value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
+                help=help["metrics"][4])
+        
     # --------
     # Land use
     # --------
-    with st.expander("Land use", expanded=False):
+    with st.expander("Land use", expanded=True):
         st.metric(label="**:sunrise_over_mountains: Total area of agricultural spared land**",
                 value=f"{millify(spared_land_area, precision=2)} ha",
                 help=help["metrics"][2])
@@ -548,15 +541,11 @@ with col2:
                 value=f"{millify(co2_seq_total/co2_seq, precision=2)} ha",
                 help=help["metrics"][3])
 
-        st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
-                value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
-                help=help["metrics"][4])
-
 
     # --------------
     # Socio-economic
     # --------------
-    with st.expander("Socio-economic"):
+    with st.expander("Socio-economic", expanded=True):
         st.metric(label="**:factory: Public spending on engineered greenhouse gas removal**",
                 value="£100 billion",
                 help=help["metrics"][5])
@@ -568,7 +557,7 @@ with col2:
     # ---------------
     # Food production
     # ---------------
-    with st.expander("Food production"):
+    with st.expander("Food production", expanded=True):
         st.metric(label="**:factory: Change in meat and Dairy consumption**",
                 value="30%",
                 help=help["metrics"][7])

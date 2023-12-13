@@ -72,7 +72,6 @@ vegetarian_diet_dict = {
 
 option_list = ["CO2e emission per food group",
                "CO2e emission per food item",
-               "CO2 emissions per sector",
                # "CO2e concentration",
                # "Radiative forcing",
                "Temperature anomaly",
