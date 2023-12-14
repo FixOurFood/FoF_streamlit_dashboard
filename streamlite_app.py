@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_modal import Modal
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -113,13 +114,13 @@ with st.sidebar:
         # foresting_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
         silvopasture = st.slider('Farmland % converted to silvopasture',
                                                 min_value=0, max_value=100, step=25,
-                                                key='l4', help=help["sidebar_land"][2])
+                                                key='l4', help=help["sidebar_land"][3])
         
 
         # agroforestry_spared = cw.label_plus_slider('Forested spared land fraction',ratio=(6,4),
         agroforestry = st.slider('Farmland % converted to agroforestry',
                                                 min_value=0, max_value=100, step=25,
-                                                key='l5', help=help["sidebar_land"][2])
+                                                key='l5', help=help["sidebar_land"][4])
        
         # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
         # biofuel_spared = st.slider('Biofuel crops spared land fraction',
@@ -146,19 +147,19 @@ with st.sidebar:
         # overseas_BECCS = cw.label_plus_slider('BECCS sequestration from overseas biomass', ratio=(6,4),
         overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
                                                 min_value=0, max_value=100, step=1,
-                                                key='i2', help=help["sidebar_innovation"][0])
+                                                key='i2', help=help["sidebar_innovation"][1])
 
 
         # land_BECCS = cw.label_plus_slider('Percentage of farmland for BECCS', ratio=(6,4),
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
                                                 min_value=0, max_value=20, step=1,
-                                                key='i3', help=help["sidebar_innovation"][0])
+                                                key='i3', help=help["sidebar_innovation"][2])
 
 
         # DACCS = cw.label_plus_slider('DACCS sequestration', ratio=(6,4),
         DACCS = st.slider('DACCS sequestration \n [Mt CO2e / yr]',
                                                 min_value=0, max_value=20, step=1,
-                                                key='i4', help=help["sidebar_innovation"][0])
+                                                key='i4', help=help["sidebar_innovation"][3])
 
         # labmeat_innovation = cw.label_plus_slider('Lab meat production innovation', ratio=(6,4),
         # labmeat_innovation = st.slider('Lab meat production innovation',
@@ -173,13 +174,13 @@ with st.sidebar:
         # incr_GHGE_innovation_crops = cw.label_plus_slider('Incremental crop GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
-                                                key='i5', help=help["sidebar_innovation"][3])
+                                                key='i5', help=help["sidebar_innovation"][4])
         
 
         # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_meat = st.slider('Animal production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
-                                                key='i6', help=help["sidebar_innovation"][4])
+                                                key='i6', help=help["sidebar_innovation"][5])
         
         
 
@@ -203,17 +204,51 @@ with st.sidebar:
         max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
         max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                                    ('Weight', 'Protein', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
+                                    ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
 
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
     st.markdown('''--- We would be grateful for your feedback, via [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
 
+    modal = Modal(
+        "Data sources", 
+        key="data_sources",
+    
+        # Optional
+        padding=20,    # default value
+        max_width=900  # default value
+    )
+    open_modal = st.button("View data sources")
+    if open_modal:
+        modal.open()
 
 col1, col2 = st.columns((7,3))
 
 with col1:
     # MAIN
+
+    if modal.is_open():
+        with modal.container():
+            st.markdown(
+"""The agrifood calculator uses a series of datasets to
+construct a baseline food system based on recent trends of
+consumption, population, estimates on the impact of food,
+land use and agricultural land classification.
+This is a list of the datasets currently used in this
+calculator, and their origins.
+                        
+| **Dataset**                 | **Description**                                                                    | **Origin**                                                                                                         |
+|-----------------------------|------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| FAOSTAT Food balance sheets | Production, imports, exports and detailed domestic use, per region, year and item  | FAOSTAT https://www.fao.org/faostat/en/#data/FBS                                                                   |
+| UN Population estimates     | Past estimates and future population projections per region and year               | UN World Population Prospects https://population.un.org/wpp/                                                       |
+| Poore and Nemecek LCA data  | Emissions and other impacts of food items                                          | Poore & Nemecek (2018) https://www.science.org/doi/10.1126/science.aaq0216                                         |
+| UKCEH Land cover map        | Land classification and land use maps                                              | UK CEH Land cover maps https://www.ceh.ac.uk/data/ukceh-land-cover-maps                                            |
+| Natural England ALC         | England agricultural land classification maps                                      | Natural England https://naturalengland-defra.opendata.arcgis.com/ |
+
+For detailed information on how these datasets are used,
+please visit our modelling document.
+""")
+
     plot_key = st.selectbox("Figure to display", option_list)
 
     nutrient = baseline[scaling_nutrient]
@@ -249,6 +284,11 @@ with col1:
     co2_seq_pasture = co2_seq_pasture_arr.isel(Year=-1)
     co2_seq_total = co2_seq_total_arr.isel(Year=-1)
     spared_land_area = spared_land_area_arr.isel(Year=-1)
+
+    co2_seq_engineered_total = sequestration_ds.sel(Item="BECCS from waste", Year=2100) + \
+                               sequestration_ds.sel(Item="BECCS from overseas", Year=2100) + \
+                               sequestration_ds.sel(Item="DACCS", Year=2100)
+    
 
     # Compute spared and forested land from land use sliders
     # scale pasture from scale_sparing_pasture slider
@@ -348,9 +388,10 @@ with col1:
     f, plot1 = plt.subplots(1, figsize=(7,7))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
-    
+
+
     fair_run = set_fair_base()
-    fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e
+    fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e + sequestration_ds.sum(dim="Item") * pop_world / pop_uk / 1e9
     fair_run.run(progress=False)
     
     T = fair_run.temperature.loc[dict(scenario='afp', layer=0)].values.squeeze()
@@ -529,6 +570,10 @@ with col2:
                 value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
                 help=help["metrics"][4])
         
+        st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by engineered Carbon Capture and Storage**",
+                value=f"{millify(-co2_seq_engineered_total, precision=2)} t CO2/yr",
+                help=help["metrics"][3])
+        
     # --------
     # Land use
     # --------
@@ -558,8 +603,15 @@ with col2:
     # Food production
     # ---------------
     with st.expander("Food production", expanded=True):
-        st.metric(label="**:factory: Change in meat and Dairy consumption**",
-                value="30%",
+
+        food_cap_day.Item_origin.values = np.array(food_cap_day.Item_origin.values, dtype=str)
+        total_animal = food_cap_day["food"].groupby("Item_origin").sum().sel(Item_origin="Animal Products", Year=2100).to_numpy()
+
+        food_cap_day_baseline.Item_origin.values = np.array(food_cap_day_baseline.Item_origin.values, dtype=str)
+        total_animal_baseline = food_cap_day_baseline["food"].groupby("Item_origin").sum().sel(Item_origin="Animal Products", Year=2100).to_numpy()
+
+        st.metric(label="**:factory: Change in animal origin food consumption**",
+                value="{:.1f} %".format(100-100*total_animal/total_animal_baseline),
                 help=help["metrics"][7])
         
         st.metric(label="**:bar_chart: Food Self-sufficiency ratio**",

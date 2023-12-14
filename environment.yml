@@ -18,3 +18,4 @@ dependencies:
     - millify
     - fair
     - -e git+https://github.com/FixOurFood/AgriFoodPy.git@streamlit_dashboard#egg=agrifoodpy
+    - streamlit-modal
