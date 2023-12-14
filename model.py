@@ -184,8 +184,6 @@ def engineered_sequestration_model(food, sequestration_dataset, waste_BECCS, ove
                                   "BECCS from overseas":overseas_BECCS_arr,
                                   "DACCS":DACCS_arr})
     
-    print(land_BECCS / 100 * scale)
-
     food = scale_add(food=food,
                     element_in="production",
                     element_out="imports",
