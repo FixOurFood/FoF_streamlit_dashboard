@@ -384,10 +384,12 @@ please visit our modelling document.
     f, plot1 = plt.subplots(1, figsize=(7,7))
 
     total_emissions_gtco2e = (co2e_year["food"]*scaling["food"] * pop_world / pop_uk).sum(dim="Item").to_numpy()/1e15
+    total_emissions_gtco2e += sequestration_ds.sum(dim="Item") * pop_world / pop_uk / 1e9
 
+    total_emissions_gtco2e = total_emissions_gtco2e.to_numpy()
 
     fair_run = set_fair_base()
-    fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e + sequestration_ds.sum(dim="Item") * pop_world / pop_uk / 1e9
+    fair_run.emissions.loc[{"scenario":"afp", "specie":"CO2", "config":"defaults"}] = total_emissions_gtco2e
     fair_run.run(progress=False)
     
     T = fair_run.temperature.loc[dict(scenario='afp', layer=0)].values.squeeze()
