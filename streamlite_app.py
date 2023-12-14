@@ -175,14 +175,11 @@ with st.sidebar:
         incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i5', help=help["sidebar_innovation"][4])
-        
 
         # incr_GHGE_innovation_meat = cw.label_plus_slider('Incremental meat GHGE innovation', ratio=(6,4),
         incr_GHGE_innovation_meat = st.slider('Animal production GHGE innovation',
                                                 min_value=0, max_value=4, step=1,
                                                 key='i6', help=help["sidebar_innovation"][5])
-        
-        
 
         # # radc_GHGE_innovation = cw.label_plus_slider('Radical GHGE innovation', ratio=(6,4),
         # radc_GHGE_innovation = st.slider('Radical GHGE innovation',
@@ -353,7 +350,6 @@ please visit our modelling document.
         "Pigmeat" : 2733,
         "Poultry Meat" : 2734
     }
-
     items_replaced_by_cultured = [2731]
     for item in extra_items_cultured_string:
         items_replaced_by_cultured.append(extra_items_cultured_dict[item])
@@ -549,6 +545,15 @@ please visit our modelling document.
 
         # c = plot_land_altair(ALC)
 
+    elif plot_key == "CO2 emissions per sector":
+
+        width = 0.5
+        labels = ["Emissions", "Reductions", "Sequestration"]
+        plot1.bar(labels, [50, 25, 40] ,width, bottom = [0, 25, -15], color=["r", "g", "b"])
+        col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        with col2_2:
+            st.pyplot(fig=f)
+
     if c is not None:
         st.altair_chart(altair_chart=c, use_container_width=True)
 
@@ -565,7 +570,6 @@ with col2:
                 value="{:.2f} °C".format(T[-1] - T[-80]),
                 delta="{:.2f} °C - Compared to BAU".format((T[-1] - T[-80])-(T_base[-1] - T_base[-80])), delta_color="inverse",
                 help=help["metrics"][0])
-        
         st.metric(label="**:chart_with_downwards_trend: Total carbon sequestration by forested agricultural land**",
                 value=f"{millify(co2_seq_total, precision=2)} t CO2/yr",
                 help=help["metrics"][4])
@@ -585,7 +589,6 @@ with col2:
         st.metric(label="**:deciduous_tree: Total area of forested agricultural land**",
                 value=f"{millify(co2_seq_total/co2_seq, precision=2)} ha",
                 help=help["metrics"][3])
-
 
     # --------------
     # Socio-economic
