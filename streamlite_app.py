@@ -206,6 +206,7 @@ with st.sidebar:
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
     st.markdown('''--- We would be grateful for your feedback, via [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
+    st.markdown('''--- For a list of references to the datasets used, please visit our [reference document](https://docs.google.com/spreadsheets/d/1XkOELCFKHTAywUGoJU6Mb0TjXESOv5BbR67j9UCMEgw/edit?usp=sharing).''')
 
     modal = Modal(
         "Data sources", 
@@ -215,9 +216,9 @@ with st.sidebar:
         padding=20,    # default value
         max_width=900  # default value
     )
-    open_modal = st.button("View data sources")
-    if open_modal:
-        modal.open()
+    # open_modal = st.button("View data sources")
+    # if open_modal:
+    #     modal.open()
 
 col1, col2 = st.columns((7,3))
 
