@@ -29,7 +29,7 @@ def plot_years_altair(food, show="Item", xlabel=None, **kwargs):
 
 def plot_years_total(food, xlabel=None, sumdim=None):
     years = food.Year.values
-    if sumdim is not None:
+    if sumdim is not None and sumdim in food.dims:
         total = food.sum(dim="Item")
     else:
         total = food
