@@ -25,11 +25,43 @@ def update_slider(keys, values):
 # if 'd3' not in st.session_state:
 #         st.session_state['d3'] = []
 
-def reset_all_sliders():
-    update_slider(keys=['d1', 'd2', 'd3', 'd4', 'd5'], values=[0, 0, [], 0, 0])
-    update_slider(keys=['l1', 'l2', 'l3', 'l4', 'l5'], values=[0, 0, 0, 0, 0])
-    update_slider(keys=['i1', 'i2', 'i3', 'i4', 'i5', 'i6'], values=[0, 0, 0, 0, 0, 0])
+default_widget_values = {
+    # Consumer demand sliders and widgets
+    "d1": 0,
+    "d2": 0,
+    "d3": [],
+    "d4": 0,
+    "d5": 0,
+    "d6": [],
 
+    # Land use sliders and widgets
+    "l1": 0,
+    "l2": 0,
+    "l3": 0,
+    "l4": 0,
+    "l5": 0,
+
+    # Technology and innovation sliders and widgets
+    "i1": 0,
+    "i2": 0,
+    "i3": 0,
+    "i4": 0,
+    "i5": 0,
+    "i6": 0,
+
+    # Advanced settings sliders and widgets
+    "labmeat_slider": 25,
+    "a2": 2250,
+    "a3": 2,
+    "a4": 12.47,
+    "max_ghg_animal": 30,
+    "max_ghg_plant": 30,
+    "a7": "Energy",    
+}
+
+def reset_all_sliders():
+    for key in default_widget_values.keys():
+        update_slider(keys=[key], values=[default_widget_values[key]])
 
 # return a logistic function between the input ranges with given k, x0
 def logistic(n_scale, xmin=0, xmax=81):

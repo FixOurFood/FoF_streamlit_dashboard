@@ -84,7 +84,9 @@ with st.sidebar:
                                         key='d6', help=help["sidebar_consumer"][7])
 
 
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
+        st.button("Reset", on_click=update_slider, key='reset_d',
+                  kwargs={"values": [0, 0, [], 0, 0, []],
+                          "keys": ['d1', 'd2', 'd3', 'd4', 'd5', 'd6']},)
 
     # Land management interventions
     with st.expander("**:earth_africa: Land management**"):
@@ -194,14 +196,59 @@ with st.sidebar:
 
     with st.expander("Advanced settings"):
 
-        labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider', on_change=change_labmeat_co2e)
-        rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
-        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=4, value=2)
-        co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.47)
-        max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
-        max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
+        labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]',
+                                 min_value=1.,
+                                 max_value=120.,
+                                 value=25.,
+                                 key='labmeat_slider',
+                                 on_change=change_labmeat_co2e)
+        
+        rda_kcal = st.slider('Recommended daily energy intake [kCal]',
+                             min_value=2000,
+                             max_value=2500,
+                             value=2250,
+                             key='a2')
+        
+        n_scale = st.slider('Adoption timescale [years]',
+                            min_value=0,
+                            max_value=4,
+                            value=2,
+                            key='a3')
+        
+        co2_seq = st.slider('Forest CO2 sequestration [t CO2 / ha / year]',
+                            min_value=7.,
+                            max_value=15.,
+                            value=12.47,
+                            key='a4')
+        
+        max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]',
+                                    min_value=0,
+                                    max_value=100,
+                                    value=30,
+                                    step=10,
+                                    key="max_ghg_animal",
+                                    help=help["advanced_options"][3])
+        
+        max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]',
+                                   min_value=0,
+                                   max_value=100,
+                                   value=30,
+                                   step=10,
+                                   key="max_ghg_plant",
+                                   help = help["advanced_options"][4])
+        
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                                    ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
+                                    ('Weight', 'Proteins', 'Fat', 'Energy'),
+                                    horizontal=True,
+                                    index=3,
+                                    help=help["sidebar_consumer"][0],
+                                    key='a7')
+        
+        st.button("Reset", on_click=update_slider,
+                  kwargs={"values": [25,2250,2,12.47,30,30, "Energy"],
+                          "keys": ['labmeat_slider', 'a2', 'a3', 'a4', 'max_ghg_animal', 'max_ghg_plant', 'a7']},
+                  key='reset_a')
+
 
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
