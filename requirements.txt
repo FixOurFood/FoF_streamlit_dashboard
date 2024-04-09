@@ -1,0 +1,11 @@
+numpy
+netcdf4
+xarray
+pandas
+matplotlib
+altair
+streamlit
+millify
+fair
+streamlit-modal
+-e git+https://github.com/FixOurFood/AgriFoodPy.git@streamlit_dashboard#egg=agrifoodpy
