@@ -131,14 +131,14 @@ per_year = {"Weight":food_year_baseline,
 
 pop_world_past = pop.sel(Year=np.arange(1961,2021), Region=area_pop_world)
 
-# Convert from grams to Gt: /1e15
-total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world_past / pop_past_uk).sum(dim="Item")/1e15
+# # Convert from grams to Gt: /1e15
+# total_emissions_gtco2e_baseline = (co2e_year_baseline["food"] * pop_world_past / pop_past_uk).sum(dim="Item")/1e15
 
-T_base, C_base, F_base = fair_co2_only(total_emissions_gtco2e_baseline)
+# T_base, C_base, F_base = fair_co2_only(total_emissions_gtco2e_baseline)
 
-datablock["impact"]["T"] = T_base
-datablock["impact"]["C"] = C_base
-datablock["impact"]["F"] = F_base
+# datablock["impact"]["T"] = T_base
+# datablock["impact"]["C"] = C_base
+# datablock["impact"]["F"] = F_base
 
 # -------------------------------
 # Land use data

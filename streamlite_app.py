@@ -299,7 +299,7 @@ with col1:
                           "seq_coniferous_ha_yr":conif_seq_ha_yr})
 
     food_system.add_step(compute_emissions)
-    food_system.add_step(compute_t_anomaly)
+    # food_system.add_step(compute_t_anomaly)
 
     food_system.run()
 
