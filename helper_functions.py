@@ -1,8 +1,6 @@
 # FAIR wrapper, needed for caching
 import streamlit as st
 import fair
-import pandas as pd
-from agrifoodpy.food.food_supply import scale_element
 import numpy as np
 
 # Helper Functions
@@ -38,15 +36,6 @@ def logistic(n_scale, xmin=0, xmax=81):
     x0 = 10*(-0.01+np.arange(5))
     return 1 / (1 + np.exp(-k[n_scale]*(np.arange(xmax-xmin) - x0[n_scale])))
 
-# Function to scale an element and then add the difference to another element
-def scale_add(food, element_in, element_out, scale, items=None):
-
-    out = scale_element(food, element_in, scale, items)
-    dif = food[element_in].fillna(0) - out[element_in].fillna(0)
-    out[element_out] += dif
-
-    return out
-
 # function to return the coordinate index of the maximum value along a dimension
 def map_max(map, dim):
 
@@ -54,3 +43,15 @@ def map_max(map, dim):
     map_fixed = map.assign_coords({dim:np.arange(length_dim)})
 
     return map_fixed.idxmax(dim=dim, skipna=True)
+
+def item_name_code(arr):
+    if np.array_equal([2949],arr):
+        return "Egg"
+    elif np.array_equal([2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769], arr):
+        return "Fish & Seafood"
+    elif np.array_equal([2740, 2743, 2948], arr):
+        return "Dairy"
+    elif np.array_equal([2734], arr):
+        return "Poultry"
+    elif np.array_equal([2733], arr):
+        return "Pigmeat"
