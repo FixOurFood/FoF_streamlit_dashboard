@@ -103,7 +103,9 @@ with st.sidebar:
             extra_items_cultured = np.hstack(extra_items_cultured)
 
 
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0, 0, [], 0, 0], "keys": ['d1', 'd2', 'd3', 'd4', 'd5']}, key='reset_d')
+        st.button("Reset", on_click=update_slider, key='reset_d',
+                  kwargs={"values": [0, 0, [], 0, 0, []],
+                          "keys": ['d1', 'd2', 'd3', 'd4', 'd5', 'd6']},)
 
     # Land management interventions
     with st.expander("**:earth_africa: Land management**"):
@@ -200,8 +202,19 @@ with st.sidebar:
         bdleaf_conif_ratio = st.slider('Ratio of coniferous to broadleaved reforestation', min_value=0, max_value=100, value=50, step=10, key = "bdleaf_conif_ratio", help = help["advanced_options"][5])
         bdleaf_seq_ha_yr = st.slider('Broadleaved forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.5, step=0.5, key = "bdleaf_seq_ha_yr", help = help["advanced_options"][6])
         conif_seq_ha_yr = st.slider('Coniferous forest CO2 sequestration [t CO2 / ha / year]', min_value=15., max_value=30., value=23.5, step=0.5, key = "conif_seq_ha_yr", help = help["advanced_options"][7])
+
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                                    ('Weight', 'Proteins', 'Fat', 'Energy'), horizontal=True, index=3, help=help["sidebar_consumer"][0])
+                                    ('Weight', 'Proteins', 'Fat', 'Energy'),
+                                    horizontal=True,
+                                    index=3,
+                                    help=help["sidebar_consumer"][0],
+                                    key='a7')
+        
+        st.button("Reset", on_click=update_slider,
+                  kwargs={"values": [25,2250,2,12.47,30,30, "Energy"],
+                          "keys": ['labmeat_slider', 'a2', 'a3', 'a4', 'max_ghg_animal', 'max_ghg_plant', 'a7']},
+                  key='reset_a')
+
 
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
