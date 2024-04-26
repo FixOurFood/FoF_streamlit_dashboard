@@ -4,24 +4,13 @@ import numpy as np
 from millify import millify
 help = pd.read_csv(st.secrets["tooltips_url"], dtype='string')
 
-def metrics(datablock):
+def metrics(datablock, metric_yr=2100):
 
     # ----------------------------
     #       Metrics block
     # ----------------------------
 
     st.write("## Metrics")
-    _ , col2050, col, col2100, _ = st.columns([2.5,1,1,1,2])
-    with col2050:
-        st.write("2050")
-    with col:
-        yr = lambda b: 2100 if b else 2050
-        metric_yr = yr(st.toggle("Metrics years",
-                                 value=True,
-                                 key="metrics_years",
-                                 label_visibility="collapsed"))
-    with col2100:
-        st.write("2100")
 
     # ----------------------------
     # Environment and biodiversity

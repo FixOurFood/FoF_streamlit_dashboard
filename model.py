@@ -70,7 +70,8 @@ def ruminant_consumption_model(datablock, ruminant_scale, items):
                            year=2020,
                            scale=1-ruminant_scale/100,
                            adoption="logistic",
-                           origin="-production",
+                        #    origin="-production",
+                           origin="-imports",
                            constant=True,
                            fallback="-exports")
     
@@ -127,7 +128,8 @@ def meat_consumption_model(datablock, meat_scale, extra_items):
                            year=2020,
                            scale=1-meat_scale/7,
                            adoption="logistic",
-                           origin="-production",
+                        #    origin="-production",
+                           origin="-imports",
                            constant=True,
                            fallback="-exports")
     
@@ -339,8 +341,12 @@ def food_waste_model(datablock, waste_scale, kcal_rda):
 
     scale_waste = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=1-waste_factor)
 
+    # Set to "imports" or "production" to choose which element of the food system supplies the change in consumption
+    element_out = "imports"
+
     # Scale food and subtract difference from production
-    out = food_orig.fbs.scale_add(element_in="food", element_out="production",
+    out = food_orig.fbs.scale_add(element_in="food",
+                                  element_out=element_out,
                                   scale=scale_waste)
     
     # Scale feed, seed and processing
@@ -362,11 +368,11 @@ def food_waste_model(datablock, waste_scale, kcal_rda):
     out = out.fbs.scale_add(element_in="processing",element_out="production",
                             scale=processing_scale)
 
-    # If production is negative, set to zero and add the negative delta to
+    # If supply element is negative, set to zero and add the negative delta to
     # imports
-    delta_neg = out["production"].where(out["production"] < 0, other=0)
-    out["production"] -= delta_neg
-    out["imports"] += delta_neg
+    delta_neg = out[element_out].where(out[element_out] < 0, other=0)
+    out[element_out] -= delta_neg
+    out["exports"] -= delta_neg
 
     # Scale all per capita qantities proportionally
     ratio = out / food_orig
@@ -410,17 +416,19 @@ def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, extra_items):
     y3 = food_orig.Year.values[-1]
     scale_labmeat = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=1-cultured_scale)
 
-    # Scale and remove from production
+
+    # Scale and remove from suplying element
+    element_out = "production"
     out = food_orig.fbs.scale_add(element_in="food",
-                                  element_out="production",
+                                  element_out=element_out,
                                   scale=scale_labmeat,
                                   items=items_to_replace,
                                   add=True)
     
     # If production is negative, set to zero and add the negative delta to
     # imports
-    delta_neg = out["production"].where(out["production"] < 0, other=0)
-    out["production"] -= delta_neg
+    delta_neg = out[element_out].where(out[element_out] < 0, other=0)
+    out[element_out] -= delta_neg
     out["imports"] += delta_neg
     
     # Add delta to cultured meat

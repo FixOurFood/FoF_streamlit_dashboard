@@ -75,7 +75,7 @@ option_list = ["CO2e emission per food group",
             #    "CO2 emissions per sector",
                # "CO2e concentration",
                # "Radiative forcing",
-               "Temperature anomaly",
+            #    "Temperature anomaly",
                "Per capita daily values",
                "Land",
                "Self-sufficiency ratio"]

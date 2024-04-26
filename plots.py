@@ -17,12 +17,33 @@ def plots(datablock):
 
     f, plot1 = plt.subplots(1, figsize=(7,7))
     
-    plot_key = st.selectbox("Figure to display", option_list)
+    # Add toggle to switch year horizon between 2050 and 2100
+    col_multiselect , col2050, col, col2100, _ = st.columns([16,1,1,1,1])
+    with col_multiselect:
+        plot_key = st.selectbox("Figure to display", option_list)
+    with col2050:
+        st.text("")
+        st.text("")
+        st.markdown("2050")
+    with col:
+        st.text("")
+        st.text("")
+        yr = lambda b: 2100 if b else 2050
+        metric_yr = yr(st.toggle("Metrics years",
+                                 value=True,
+                                 key="metrics_years",
+                                 label_visibility="collapsed"))
+    with col2100:
+        st.text("")
+        st.text("")
+        st.markdown("2100")
 
+    
     # Emissions per food group or origin
     # ----------------------------------
     if plot_key == "CO2e emission per food group":
-        emissions = datablock["impact"]["g_co2e/year"]
+        emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
+        seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
         emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
         option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
 
@@ -35,30 +56,29 @@ def plots(datablock):
             f = plot_years_altair(emissions["production"]/1e6, show="Item_group", ylabel="t CO2e / Year")
 
         # Plot sequestration
-        seq_da = datablock["impact"]["co2e_sequestration"]
         f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
 
     # Emissions per food item from each group
     # ---------------------------------------
     elif plot_key == "CO2e emission per food item":
-        emissions = datablock["impact"]["g_co2e/year"]
-        emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
+        emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
+        # emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
         option_key = st.selectbox("Plot options", np.unique(emissions.Item_group.values))
 
         # plot1.plot(emissions_baseline.Year.values,
         #            emissions_baseline["food"].sel(
         #                Item=emissions_baseline["Item_group"] == option_key).sum(dim="Item"))
         
-        to_plot = emissions["production"].sel(Item=emissions["Item_group"] == option_key)
+        to_plot = emissions["production"].sel(Item=emissions["Item_group"] == option_key)/1e6
 
-        f = plot_years_altair(to_plot, show="Item_name", ylabel="Year")
+        f = plot_years_altair(to_plot, show="Item_name", ylabel="t CO2e / Year")
 
-    # Temperature anomaly plot as a function of time
-    # ----------------------------------------------
-    elif plot_key == "Temperature anomaly":
+    # # Temperature anomaly plot as a function of time
+    # # ----------------------------------------------
+    # elif plot_key == "Temperature anomaly":
         
-        T = datablock["impact"]["T"]
-        f = plot_years_total(T)
+    #     T = datablock["impact"]["T"]
+    #     f = plot_years_total(T)
 
     # FAOSTAT bar plot with per-capita daily values
     # ---------------------------------------------
@@ -73,7 +93,7 @@ def plots(datablock):
         option_key = st.selectbox("Plot options", list(per_cap_options.keys()))
 
 
-        to_plot = datablock["food"][option_key].isel(Year=-1).fillna(0)
+        to_plot = datablock["food"][option_key].sel(Year=metric_yr).fillna(0)
         to_plot.Item_origin.values = np.array(to_plot.Item_origin.values, dtype=str)
         to_plot = to_plot.groupby("Item_origin").sum().rename({"Item_origin":"Item"})
 
@@ -84,7 +104,7 @@ def plots(datablock):
     # --------------------------------------------
     elif plot_key == "Self-sufficiency ratio":
 
-        SSR = datablock["food"]["g/cap/day"].fbs.SSR()
+        SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=slice(None, metric_yr))
         f = plot_years_total(SSR)
         
     # Various land plots, including Land use and ALC
@@ -116,11 +136,12 @@ def plots(datablock):
             patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11]]
             plot1.legend(handles=patches, loc="upper left")
 
+            inset = f.add_axes([left, bottom, width, height])
+            left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
+            inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list )
+    
         plot1.axis("off")
-        left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
-        inset = f.add_axes([left, bottom, width, height])
 
-        inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list )
 
     # Output figure depending on type
     if isinstance(f, matplotlib.figure.Figure):
@@ -129,5 +150,6 @@ def plots(datablock):
             st.pyplot(fig=f)
     
     else:
-        # st.altair_chart(f, use_container_width=True)
         st.altair_chart(f, use_container_width=True)
+
+    return metric_yr

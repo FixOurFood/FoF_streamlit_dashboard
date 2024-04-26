@@ -4,13 +4,21 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-def plot_years_altair(food, show="Item", ylabel=None, colors=None):
+def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ymax=None):
 
     # If no years are found in the dimensions, raise an exception
     sum_dims = list(food.coords)
     if "Year" not in sum_dims:
         raise TypeError("'Year' dimension not found in array data")
 
+    # Set yaxis limits
+    if ymax is None:
+        ymax = food.sum(dim="Item").max().item()
+    if ymin is None:
+        ymin = food.sum(dim="Item").min().item()
+        if ymin > 0: ymin = 0
+
+    # Create dataframe for altair
     df = food.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=sum_dims, value_vars=food.name)
 
@@ -23,14 +31,16 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None):
         show_list = np.unique(food[show].values)
         color_scale = alt.Scale(domain=show_list, range=colors)
 
+    # Create altair chart
     c = alt.Chart(df).mark_area().encode(
             x=alt.X('Year:O', axis=alt.Axis(values = np.linspace(1960, 2100, 8))),
-            y=alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel, ), scale=alt.Scale(domain=[-3e8, 3e8])),
+            y=alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel, ), scale=alt.Scale(domain=[ymin, ymax])),
             # color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             color=alt.Color(f'{show}:N', scale=color_scale),
             opacity=alt.condition(selection, alt.value(0.8), alt.value(0.2)),
             tooltip=f'{show}:N'
-            ).add_params(selection).properties(height=500)
+            ).add_params(selection).properties(height=600)
+    
     return c
 
 def plot_years_total(food, ylabel=None, sumdim=None):
@@ -88,7 +98,7 @@ def plot_bars_altair(food, show="Item", x_axis_title='', xlimit=None):
         # x = alt.X('value_end:Q', axis=alt.Axis(title=x_axis_title)),
         # x = alt.X('value_end:Q'),
         # color=alt.Color('Item'),
-        color=alt.Color('Item', scale=alt.Scale(domain=["Animal Products", "Cultured Products", "Vegetal Products"], range=["red", "blue", "green"])),
+        color=alt.Color('Item', scale=alt.Scale(domain=["Animal Products", "Cultured Product", "Vegetal Products"], range=["red", "blue", "green"])),
         opacity=alt.condition(selection, alt.value(0.9), alt.value(0.5)),
         tooltip='Item:N',
         ).add_params(selection).properties(height=500).configure_axisX(

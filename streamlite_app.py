@@ -299,23 +299,20 @@ with col1:
                           "seq_coniferous_ha_yr":conif_seq_ha_yr})
 
     food_system.add_step(compute_emissions)
-    # food_system.add_step(compute_t_anomaly)
 
     food_system.run()
 
     datablock = food_system.datablock
 
-    print(datablock["food"]["g/cap/day"].fbs.SSR())
-
     # -------------------
     # Execute plots block
     # -------------------
     from plots import plots
-    plots(datablock)
+    metric_yr = plots(datablock)
    
 with col2:
     # ---------------------
     # Execute Metrics block
     # ---------------------
     from metrics import metrics
-    metrics(datablock)
+    metrics(datablock, metric_yr)
