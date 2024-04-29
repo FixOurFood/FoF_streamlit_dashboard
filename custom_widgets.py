@@ -8,7 +8,11 @@ def label_plus_slider(label, min_value, max_value, value=None, step=1, ratio=(5,
 
 def label_plus_multiselect(label, options, ratio=(5,5), key=None, help=None, format_func=None):
     c1, c2 = st.columns(ratio)
-    c1.write(label)
+
+    s = f"<p style='font-size:11px;'>{label}</p>"
+    c1.markdown(s, unsafe_allow_html=True)   
+    
+    # c1.write(label)
     if format_func is None:
         multiselect = c2.multiselect(label, options, label_visibility="collapsed", key=key, help=help)
     else:

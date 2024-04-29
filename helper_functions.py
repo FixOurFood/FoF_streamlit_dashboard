@@ -49,12 +49,14 @@ default_widget_values = {
 
     # Advanced settings sliders and widgets
     "labmeat_slider": 25,
-    "a2": 2250,
-    "a3": 2,
-    "a4": 12.47,
+    "rda_slider": 2250,
+    "timescale_slider": 20,
     "max_ghg_animal": 30,
     "max_ghg_plant": 30,
-    "a7": "Energy",    
+    "bdleaf_conif_ratio": 50,
+    "bdleaf_seq_ha_yr": 12.5,
+    "conif_seq_ha_yr": 23.5,
+    "nutrient_constant": "Energy",    
 }
 
 def reset_all_sliders():
@@ -80,7 +82,7 @@ def item_name_code(arr):
     if np.array_equal([2949],arr):
         return "Egg"
     elif np.array_equal([2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769], arr):
-        return "Fish & Seafood"
+        return "Fish/Seafood"
     elif np.array_equal([2740, 2743, 2948], arr):
         return "Dairy"
     elif np.array_equal([2734], arr):

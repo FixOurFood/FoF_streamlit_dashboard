@@ -68,11 +68,11 @@ with st.sidebar:
                                         key="d1", help=help["sidebar_consumer"][1])
         
         # meatfree = cw.label_plus_slider('Number of meat free days a week', ratio=(6,4),
-        meatfree = st.slider('Number of meat free days a week',
+        meatfree = st.slider('Number of meat-free days a week',
                                         min_value=0, max_value=7, step=1,
                                         key="d2", help=help["sidebar_consumer"][2])
 
-        meatfree_extra_items = cw.label_plus_multiselect('Also exclude from meat free days',
+        meatfree_extra_items = cw.label_plus_multiselect('Also exclude from meat-free days',
                                         options=[[2949],
                                                  [2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769],
                                                  [2740, 2743, 2948]],
@@ -195,8 +195,8 @@ with st.sidebar:
     with st.expander("Advanced settings"):
 
         labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider')
-        rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250)
-        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=50, value=20, step=5)
+        rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250, key='rda_slider')
+        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=50, value=20, step=5, key='timescale_slider')
         max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
         max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
         bdleaf_conif_ratio = st.slider('Ratio of coniferous to broadleaved reforestation', min_value=0, max_value=100, value=50, step=10, key = "bdleaf_conif_ratio", help = help["advanced_options"][5])
@@ -208,11 +208,11 @@ with st.sidebar:
                                     horizontal=True,
                                     index=3,
                                     help=help["sidebar_consumer"][0],
-                                    key='a7')
+                                    key='nutrient_constant')
         
         st.button("Reset", on_click=update_slider,
-                  kwargs={"values": [25,2250,2,12.47,30,30, "Energy"],
-                          "keys": ['labmeat_slider', 'a2', 'a3', 'a4', 'max_ghg_animal', 'max_ghg_plant', 'a7']},
+                  kwargs={"values": default_widget_values.values(),
+                          "keys": default_widget_values.keys()},
                   key='reset_a')
 
 
