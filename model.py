@@ -1,193 +1,825 @@
 import xarray as xr
 import numpy as np
-from agrifoodpy.food.food_supply import scale_food
+from agrifoodpy.food.food import FoodBalanceSheet
+from agrifoodpy.utils.scaling import logistic_scale, linear_scale
+import warnings
+import copy
 
-from afp_config import *
-from helper_functions import *
+# from agrifoodpy.food.food_supply import scale_food, SSR
+# from afp_config import *
+# from helper_functions import *
 
-def ruminant_consumption_model(food, ruminant, n_scale):
-
-    scale_past_ruminant = xr.DataArray(data = np.ones(59),
-                                        coords = {"Year":np.arange(1961,2020)})
-
-    scale_future_ruminant = xr.DataArray(data = 1-(ruminant/100)*logistic(n_scale),
-                                        coords = {"Year":np.arange(2020,2101)})
-
-    scale_ruminant = xr.concat([scale_past_ruminant, scale_future_ruminant], dim="Year")   
-
-    out = scale_food(food=food,
-                         scale= scale_ruminant,
-                         origin="imports",
-                         items=groups["RuminantMeat"],
-                         constant=True,
-                         fallback="exports")
+def project_future(datablock, scale):
+    """Project future food consumption based on scale
     
+    Parameters
+    ----------
+    datablock : Dict
+        Dictionary containing xarray datasets for population, food consumption etc.
+
+    scale : xarray.DataArray
+        Scale to apply to food consumption
+
+    Returns
+    -------
+    datablock : Dict
+        New dictionary containinng projected food consumption data
+    """
+    years = np.arange(2021,2101)
+
+    # Per capita per day values remain constant
+    g_cap_day = datablock["food"]["g/cap/day"]
+    g_prot_cap_day = datablock["food"]["g_prot/cap/day"]
+    g_fat_cap_day = datablock["food"]["g_fat/cap/day"]
+    kcal_cap_day = datablock["food"]["kCal/cap/day"]
+
+    g_cap_day = g_cap_day.fbs.add_years(years, "constant")
+    g_prot_cap_day = g_prot_cap_day.fbs.add_years(years, "constant")
+    g_fat_cap_day = g_fat_cap_day.fbs.add_years(years, "constant")
+    kcal_cap_day = kcal_cap_day.fbs.add_years(years, "constant")
+
+    # Emissions per gram of food also remain constant
+    g_co2e_g = datablock["impact"]["gco2e/gfood"]
+    g_co2e_g = g_co2e_g.fbs.add_years(years, "constant")
+
+    datablock["food"]["g/cap/day"] = g_cap_day
+    datablock["food"]["g_prot/cap/day"] = g_prot_cap_day
+    datablock["food"]["g_fat/cap/day"] = g_fat_cap_day
+    datablock["food"]["kCal/cap/day"] = kcal_cap_day
+    datablock["impact"]["gco2e/gfood"] = g_co2e_g
+
+    return datablock
+
+def ruminant_consumption_model(datablock, ruminant_scale, items, source, scaling_nutrient):
+    """Reduces per capita daily ruminant meat intake and replaces its
+    consumption by all other items keeping the overall food consumption constant
+    """
+
+    ruminant_items = items
+    timescale = datablock["global_parameters"]["timescale"]
+    # We can use any quantity here, either per cap/day or per year. The ratio
+    # will cancel out the population growth
+    food_orig = datablock["food"][scaling_nutrient]
+
+    source = source.lower()
+
+    # Balanced scaling. Reduce food, reduce imports, keep kCal constant
+    out = balanced_scaling(fbs=food_orig,
+                           items=ruminant_items,
+                           element="food",
+                           timescale=timescale,
+                           year=2020,
+                           scale=1-ruminant_scale/100,
+                           adoption="logistic",
+                           origin="-" + source,
+                           constant=True,
+                           fallback="-exports")
+
+    # Scale feed, seed and processing
+    feed_scale = out["production"].sel(Item=out.Item_origin=="Animal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Animal Products").sum(dim="Item")
+
+    seed_scale = out["production"].sel(Item=out.Item_origin=="Vegetal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Vegetal Products").sum(dim="Item")
+    
+    processing_scale = out["production"].sum(dim="Item") \
+                / food_orig["production"].sum(dim="Item")
+
+    out = out.fbs.scale_add(element_in="feed", element_out="production",
+                            scale=feed_scale)
+    
+    out = out.fbs.scale_add(element_in="seed",element_out="production",
+                            scale=seed_scale)
+    
+    out = out.fbs.scale_add(element_in="processing",element_out="production",
+                            scale=processing_scale)
+    
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Update per cap/day values and per year values using the same ratio, which
+    # is independent of population growth
+
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
+
+    return datablock
+
+def meat_consumption_model(datablock, meat_scale, extra_items, source, scaling_nutrient):
+    """Reduces per capita daily meat intake and replaces its consumption by all
+    other items keeping the overall food consumption constant
+    """
+
+    timescale = datablock["global_parameters"]["timescale"]
+    food_orig = datablock["food"][scaling_nutrient]
+
+    # Select items
+    animal_items = food_orig.sel(Item=food_orig.Item_group=="Meat").Item.values
+
+    if len(extra_items) > 0:
+        animal_items = np.concatenate([animal_items, extra_items])
+    
+    source = source.lower()
+
+    # Balanced scaling. Reduce food, reduce imports, keep kCal constant
+    out = balanced_scaling(fbs=food_orig,
+                           items=animal_items,
+                           element="food",
+                           timescale=timescale,
+                           year=2020,
+                           scale=1-meat_scale/7,
+                           adoption="logistic",
+                           origin="-" + source,
+                           constant=True,
+                           fallback="-exports")
+    
+    # Scale feed, seed and processing
+    feed_scale = out["production"].sel(Item=out.Item_origin=="Animal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Animal Products").sum(dim="Item")
+
+    seed_scale = out["production"].sel(Item=out.Item_origin=="Vegetal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Vegetal Products").sum(dim="Item")
+    
+    processing_scale = out["production"].sum(dim="Item") \
+                / food_orig["production"].sum(dim="Item")
+    
+    out = out.fbs.scale_add(element_in="feed",element_out="production",
+                            scale=feed_scale)
+    
+    out = out.fbs.scale_add(element_in="seed",element_out="production",
+                            scale=seed_scale)
+    
+    out = out.fbs.scale_add(element_in="processing",element_out="production",
+                            scale=processing_scale)
+    
+    # If production is negative, set to zero and add the negative delta to
+    # imports
+
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
+
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] += delta_neg
+    
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Update per cap/day values and per year values using the same ratio, which
+    # is independent of population growth
+
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
+
+    return datablock
+
+def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
+                     timescale=10, origin=None, constant=False,
+                     fallback=None):
+    """Scale items quantities across multiple elements in a FoodBalanceSheet
+    Dataset 
+    
+    Scales selected item quantities on a food balance sheet and with the
+    posibility to keep the sum of selected elements constant.
+    Optionally, produce an Dataset with a sequence of quantities over the years
+    following a smooth scaling according to the selected functional form.
+
+    The elements used to supply the modified quantities can be selected to keep
+    a balanced food balance sheet.
+
+    Parameters
+    ----------
+    fbs : xarray.Dataset
+        Input food balance sheet Dataset.
+    items : list
+        List of items to scale in the food balance sheet.
+    element : string
+        Name of the DataArray to scale.
+    scale : float
+        Scaling parameter after full adoption.
+    adoption : string, optional
+        Shape of the scaling adoption curve. "logistic" uses a logistic model
+        for a slow-fast-slow adoption. "linear" uses a constant slope adoption
+        during the the "timescale period"
+    year : int, optional
+        Year of the Food Balance Sheet to use as pivot. If not set, the last
+        year of the array is used
+    timescale : int, optional
+        Timescale for the scaling to be applied completely.  If "year" +
+        "timescale" is greater than the last year in the array, it is extended
+        to accomodate the extra years.
+    origin : string, optional
+        Name of the DataArray which will be used to balance the food balance
+        sheets. Any change to the "element" DataArray will be reflected in this
+        DataArray.
+    constant : bool, optional
+        If set to True, the sum of element remains constant by scaling the non
+        selected items accordingly.
+    fallback : string, optional
+        Name of the DataArray used to provide the excess required to balance the
+        food balance sheet in case the "origin" falls below zero.
+
+    Returns
+    -------
+    data : xarray.Dataarray
+        Food balance sheet Dataset with scaled "food" values.
+    """
+
+    # Check for single item inputs
+    if np.isscalar(items):
+        items = [items]
+
+    # Check for single item list fbs
+    input_item_list = fbs.Item.values
+    if np.isscalar(input_item_list):
+        input_item_list = [input_item_list]
+        if constant:
+            warnings.warn("Constant set to true but input only has a single item.")
+            constant = False
+
+    # If no items are provided, we scale all of them.
+    if items is None or np.sort(items) is np.sort(input_item_list):
+        items = fbs.Item.values
+        if constant:
+            warnings.warn("Cannot keep food constant when scaling all items.")
+            constant = False
+
+    # Define Dataarray to use as pivot
+    if "Year" in fbs.dims:
+        if year is None:
+            if np.isscalar(fbs.Year.values):
+                year = fbs.Year.values
+                fbs_toscale = fbs
+            else:
+                year = fbs.Year.values[-1]
+                fbs_toscale = fbs.isel(Year=-1)
+        else:
+            fbs_toscale = fbs.sel(Year=year)
+
+    else:
+        fbs_toscale = fbs
+        try:
+            year = fbs.Year.values
+        except AttributeError:
+            year=0
+
+    # Define scale array based on year range
+    if adoption is not None:
+        if adoption == "linear":
+            from agrifoodpy.utils.scaling import linear_scale as scale_func
+        elif adoption == "logistic":
+            from agrifoodpy.utils.scaling import logistic_scale as scale_func
+        else:
+            raise ValueError("Adoption must be one of 'linear' or 'logistic'")
+        
+        y0 = fbs.Year.values[0]
+        y1 = year
+        y2 = np.min([year + timescale, fbs.Year.values[-1]])
+        y3 = fbs.Year.values[-1]
+        
+        scale_arr = scale_func(y0, y1, y2, y3, c_init=1, c_end = scale)
+        
+        # # Extend the dataset to include all the years of the array
+        # fbs_toscale = fbs_toscale * xr.ones_like(scale_arr)
+    
+    else:
+        scale_arr = scale
+    
+
+    # Create a deep copy to modify and return
+    out = fbs.copy(deep=True)
+    osplit = origin.split("-")[-1]
+    
+    out = out.fbs.scale_add(element, osplit, scale_arr, items, 
+                            add = origin.startswith("-"))
+    
+
+    if constant:
+
+        delta = out[element] - fbs[element]
+
+        # Scale non selected items
+        non_sel_items = np.setdiff1d(fbs.Item.values, items)
+        non_sel_scale = (fbs.sel(Item=non_sel_items)[element].sum(dim="Item") - delta.sum(dim="Item")) / fbs.sel(Item=non_sel_items)[element].sum(dim="Item")
+        
+        # Make sure inf and nan values are not scaled
+        non_sel_scale = non_sel_scale.where(np.isfinite(non_sel_scale)).fillna(1.0)
+
+        if np.any(non_sel_scale < 0):
+            warnings.warn("Additional consumption cannot be compensated by \
+                        reduction of non-selected items")
+        
+        out = out.fbs.scale_add(element, osplit, non_sel_scale,
+                        non_sel_items, add = origin.startswith("-"))
+
+        # If fallback is defined, adjust to prevent negative values
+        if fallback is not None:
+            df = out[osplit].where(out[osplit] < 0).fillna(0)
+            out[fallback.split("-")[-1]] -= np.where(fallback.startswith("-"), 1, -1)*df
+            out[osplit] = out[osplit].where(out[osplit] > 0, 0)
+
     return out
 
-def meatfree_consumption_model(food, meatfree, extra_items, n_scale):
+def food_waste_model(datablock, waste_scale, kcal_rda, source):
+    """Reduces daily per capita per day intake energy above a set threshold.
+    """
 
-    scale_past_meatfree = xr.DataArray(data = np.ones(59),
-                                       coords = {"Year":np.arange(1961,2020)})
+    timescale = datablock["global_parameters"]["timescale"]
+    food_orig = copy.deepcopy(datablock["food"]["kCal/cap/day"])
+    datablock["food"]["rda_kcal"] = kcal_rda
+
+    # This is the maximum factor we can multiply food by to achieve consumption
+    # equal to rda_kcal, multiplied by the ambition level
+    waste_factor = (food_orig["food"].isel(Year=-1).sum(dim="Item") - kcal_rda) \
+                 / food_orig["food"].isel(Year=-1).sum(dim="Item") \
+                 * (waste_scale / 100)
     
-    scale_future_meatfree = xr.DataArray(data = 1-(meatfree/7)*logistic(n_scale),
-                                         coords = {"Year":np.arange(2020,2101)})
-    
-    scale_meatfree = xr.concat([scale_past_meatfree, scale_future_meatfree], dim="Year")
-
-    # add extra items
-    meatfree_items = np.concatenate((groups["RuminantMeat"], groups["OtherMeat"]))
-    for item in extra_items:
-        meatfree_items = np.concatenate((meatfree_items, groups[item]))
-
-    out = scale_food(food=food,
-                     scale= scale_meatfree,
-                     origin="imports",
-                     items=meatfree_items,
-                     constant=True,
-                     fallback="exports")
-    
-    return out
-
-def food_waste_model(food, waste, rda_kcal, n_scale):
-
-    # reduce production and food consumed based on kcal
-    waste_to_reduce = waste/100*(food["food"].sel(Year=2100).sum(dim="Item") - rda_kcal)
-    waste_factor = waste_to_reduce / food["food"].sel(Year=2100).sum(dim="Item")
     waste_factor = waste_factor.to_numpy()
 
-    # scale food from waste slider
-    scale_past_waste = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future_waste = xr.DataArray(data = 1 - waste_factor*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
-    scale_waste = xr.concat([scale_past_waste, scale_future_waste], dim="Year")
+    # Create a logistic curve starting at 1, ending at 1-waste_factor
+    y0 = food_orig.Year.values[0]
+    y1 = 2020
+    y2 = 2020 + timescale
+    y3 = food_orig.Year.values[-1]
 
-    out = food.copy(deep=True)
-    out["food"] *= scale_waste
-    delta = food["food"] - out["food"]
-    out["production"] -= delta
-    out["imports"] += out["production"].where(out["production"] < 0)
-    out["production"] = out["production"].where(out["production"] > 0, other=0)
+    scale_waste = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=1-waste_factor)
 
-    return out
+    # Set to "imports" or "production" to choose which element of the food system supplies the change in consumption
+    source = source.lower()
 
-def spare_ALC_model(food, LC, spare_scale, land_type, grades, items, n_scale):
+    # Scale food and subtract difference from production
+    out = food_orig.fbs.scale_add(element_in="food",
+                                  element_out=source,
+                                  scale=scale_waste)
     
-    scaled_LC_type = LC.copy(deep=True)
+    # Scale feed, seed and processing
+    feed_scale = out["production"].sel(Item=out.Item_origin=="Animal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Animal Products").sum(dim="Item")
 
-    # delta_spared = LC.loc[{"use":land_type}] * spare_scale/100 * np.isin(ALC.grade, grades)
-
-    # scaled_LC_type.loc[{"use":"spared"}] += delta_spared
-    # scaled_LC_type.loc[{"use":land_type}] -= delta_spared
-
-    # scale animal products from scale_sparing_pasture slider
-    scale_past = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future = xr.DataArray(data = 1-(spare_scale)*logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
-    scale = xr.concat([scale_past, scale_future], dim="Year")
-
-    out = scale_add(food=food,
-                element_in="production",
-                element_out="imports",
-                items= items,
-                scale= scale)
-
-    return scaled_LC_type, out
-
-def forested_land_model(LC, foresting_spared, grades):
-
-    scaled_LC_type = LC.copy(deep=True)
-
-    delta_spared_woodland = scaled_LC_type.loc[{"use":"spared"}] * foresting_spared/100 * np.isin(ALC.grade, grades)
+    seed_scale = out["production"].sel(Item=out.Item_origin=="Vegetal Products").sum(dim="Item") \
+                / food_orig["production"].sel(Item=food_orig.Item_origin=="Vegetal Products").sum(dim="Item")
     
-    scaled_LC_type.loc[{"use":"woodland"}] += delta_spared_woodland
-    scaled_LC_type.loc[{"use":"spared"}] -= delta_spared_woodland
+    processing_scale = out["production"].sum(dim="Item") \
+                / food_orig["production"].sum(dim="Item")
 
-    return scaled_LC_type
-
-def sequestered_carbon_model(pasture_sparing, arable_sparing, foresting_spared, co2_seq, n_scale):
-
-    scale_past = xr.DataArray(data = np.zeros(59),
-                                       coords = {"Year":np.arange(1961,2020)})
+    out = out.fbs.scale_add(element_in="feed", element_out="production",
+                            scale=feed_scale)
     
-    scale_future = xr.DataArray(data = logistic(n_scale),
-                                         coords = {"Year":np.arange(2020,2101)})
+    out = out.fbs.scale_add(element_in="seed",element_out="production",
+                            scale=seed_scale)
     
-    scale = xr.concat([scale_past, scale_future], dim="Year")
+    out = out.fbs.scale_add(element_in="processing",element_out="production",
+                            scale=processing_scale)
 
-    spared_land_area_pasture = np.sum(use_by_grade[4:5,1])*pasture_sparing
-    spared_land_area_arable= np.sum(use_by_grade[4:5,0])*arable_sparing
+    # If supply element is negative, set to zero and add the negative delta to imports
 
-    spared_land_area = spared_land_area_arable + spared_land_area_pasture
-    forested_spared_land_area = spared_land_area * foresting_spared / 100
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
 
-    co2_seq_arable = spared_land_area_arable * foresting_spared / 100 * co2_seq
-    co2_seq_pasture = spared_land_area_pasture * foresting_spared / 100 * co2_seq
-    co2_seq_total = forested_spared_land_area * co2_seq
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] += delta_neg
 
-    return co2_seq_arable*scale, co2_seq_pasture*scale, co2_seq_total*scale, spared_land_area*scale
+    # Scale all per capita qantities proportionally
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
 
-def cultured_meat_uptake_model(food, labmeat, n_scale, items, new_code=5000):
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
+
+    return datablock
+
+def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, extra_items, source):
+    """Replaces selected meat items by cultured products on a weight by weight
+    basis. 
+    """
+
+    timescale = datablock["global_parameters"]["timescale"]
+    items_to_replace = [2731, 2732]
+
+    if len(extra_items) > 0:
+        items_to_replace = np.concatenate([items_to_replace, extra_items])
+
+    # Add cultured meat to the dataset
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day",
+               "kCal/cap/day"]
     
-    scale_past_labmeat = xr.DataArray(data = np.ones(59),
-                                       coords = {"Year":np.arange(1961,2020)})
+    for key in qty_key:
+        datablock["food"][key] = datablock["food"][key].fbs.add_items(5000)
+        datablock["food"][key]["Item_name"].loc[{"Item":5000}] = "Cultured meat"
+        datablock["food"][key]["Item_origin"].loc[{"Item":5000}] = "Cultured Products"
+        datablock["food"][key]["Item_group"].loc[{"Item":5000}] = "Cultured Products"
+        # Set values to zero to avoid issues
+        datablock["food"][key].loc[{"Item":5000}] = 0
+
+    # Scale products by cultured_scale
+    food_orig = copy.deepcopy(datablock["food"]["g/cap/day"])
+
+    y0 = food_orig.Year.values[0]
+    y1 = 2020
+    y2 = 2020 + timescale
+    y3 = food_orig.Year.values[-1]
+    scale_labmeat = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=1-cultured_scale)
+
+
+    # Scale and remove from suplying element
+    source = source.lower()
+    out = food_orig.fbs.scale_add(element_in="food",
+                                  element_out=source,
+                                  scale=scale_labmeat,
+                                  items=items_to_replace,
+                                  add=True)
     
-    scale_future_labmeat = xr.DataArray(data = 1-(labmeat/100)*logistic(n_scale),
-                                         coords = {"Year":np.arange(2020,2101)})
+    # If production is negative, set to zero and add the negative delta to
+    # imports
+
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
+
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] += delta_neg
     
-    scale_labmeat = xr.concat([scale_past_labmeat, scale_future_labmeat], dim="Year")
+    # Add delta to cultured meat
+    delta = (datablock["food"]["g/cap/day"]-out).sel(Item=items_to_replace).sum(dim="Item")
+    out.loc[{"Item":5000}] += delta
+    datablock["food"]["g/cap/day"] = out
 
-    food_out = food.copy(deep=True)
+    # Add nutrition values for cultured meat
+    nutrition_keys = ["g_prot/g_food", "g_fat/g_food", "kCal/g_food"]
+    for key in nutrition_keys:
+        datablock["food"][key] = datablock["food"][key].fbs.add_items(5000, copy_from=[2731])
+        datablock["food"][key]["Item_name"].loc[{"Item":5000}] = "Cultured meat"
+        datablock["food"][key]["Item_origin"].loc[{"Item":5000}] = "Cultured Products"
+        datablock["food"][key]["Item_group"].loc[{"Item":5000}] = "Cultured Products"
 
-    food_out.loc[{"Item":items}] *= scale_labmeat
+    # Add emissions factor for cultured meat
+    datablock["impact"]["gco2e/gfood"] = datablock["impact"]["gco2e/gfood"].fbs.add_items(5000)
+    datablock["impact"]["gco2e/gfood"].loc[{"Item":5000}] = labmeat_co2e
+
+    # Recompute per capita values
+    for key_pc, key_n in zip(qty_key[1:], nutrition_keys):
+        datablock["food"][key_pc] = datablock["food"]["g/cap/day"] * datablock["food"][key_n]
+
+    return datablock
+
+def compute_emissions(datablock):
+    """
+    Computes the emissions per capita per day and per year for each food item,
+    using the per capita daily weights and PN18 emissions factors.
+    """
+    pop = datablock["population"]["population"]
+    pop_world = pop.sel(Region = 826)
+
+    # Compute emissions per capita per day
+    co2e_cap_day = datablock["food"]["g/cap/day"] * datablock["impact"]["gco2e/gfood"]
+
+    # Compute emissions per year
+    datablock["food"]["g_co2e/cap/day"] = co2e_cap_day
+    datablock["impact"]["g_co2e/year"] = co2e_cap_day * pop_world * 365.25
+
+    return datablock
+
+def compute_t_anomaly(datablock):
+    """Computes the temperature anomaly, concentration and radiation forcing from
+    the per year emissions using the FAIR model.
+    """
+
+    from agrifoodpy.impact.model import fair_co2_only
+
+    # g co2e / year
+    g_co2e_year = datablock["impact"]["g_co2e/year"]["production"].sum(
+        dim="Item")
+
+    # Gt co2e / year
+    Gt_co2e_year = g_co2e_year * 1e-15
+
+    # Compute temperature anomaly based on emissions
+    T, C, F = fair_co2_only(Gt_co2e_year)
+
+    T = T.rename({"timebounds": "Year"})
+        
+    datablock["impact"]["T"] = T
+    datablock["impact"]["C"] = C
+    datablock["impact"]["F"] = F
+
+    return datablock
+
+def spare_alc_model(datablock, spare_fraction, land_type, alc_grades, items):
+    """Replaces a specified land type fraction and sets it to a new type called
+    'spared'. Scales food production and imports to reflect the change in land
+    use.
+    """
     
-    delta = (food-food_out).sel(Item=items).sum(dim="Item")
+    timescale = datablock["global_parameters"]["timescale"]
+    alc = datablock["land"]["dominant_classification"]
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+    old_use = datablock["land"]["percentage_land_use"].sel({"aggregate_class":land_type}).sum()
 
-    food_out.loc[{"Item":new_code}] += delta
+    to_spare = pctg.where(np.isin(alc, alc_grades), other=0).sel({"aggregate_class":land_type})
+    # Spare the specified land type
+    delta_spared =  to_spare * spare_fraction
+    pctg.loc[{"aggregate_class":land_type}] -= delta_spared
 
-    return food_out
+    if "Spared" not in pctg.aggregate_class.values:
+        spared_new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(alc))
+        spared_new_class["aggregate_class"] = "Spared"
+        pctg = xr.concat([pctg, spared_new_class], dim="aggregate_class")
 
-def ghge_innovation(co2e, max_ghge, items, n_scale):
+    pctg.loc[{"aggregate_class":"Spared"}] += delta_spared.sum(dim="aggregate_class")
 
-    co2e_scaled = co2e.copy(deep=True)
+    # Add spared class to the land use map
+    datablock["land"]["percentage_land_use"] = pctg
 
-    scale_ones = xr.DataArray(data = np.ones(140), coords = {"Year":np.arange(1961,2101)})
-    co2e_scaled = co2e_scaled*scale_ones
-    scale_past_co2e = xr.DataArray(data = np.ones(59), coords = {"Year":np.arange(1961,2020)})
+
+    # Scale food production and imports
+
+    new_use = pctg.sel({"aggregate_class":land_type}).sum()
+    scale_use = (new_use/old_use).to_numpy()
+
+    food_orig = datablock["food"]["g/cap/day"]
+    y0 = food_orig.Year.values[0]
+    y1 = 2020
+    y2 = 2020 + timescale
+    y3 = food_orig.Year.values[-1]
+
+    scale_spare = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=scale_use)
+
+    scaled_items = food_orig.sel(Item=food_orig.Item_origin==items).Item.values
+
+    out = food_orig.fbs.scale_add(element_in="production",
+                                  element_out="imports",
+                                  scale=scale_spare,
+                                  items=scaled_items,
+                                  add=False)
     
-    scale_future_co2e_g_crop = xr.DataArray(data = 1-(max_ghge/100/4)*logistic(n_scale),
-                                         coords = {"Year":np.arange(2020,2101)})
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
 
-    scale_co2e_g = xr.concat([scale_past_co2e, scale_future_co2e_g_crop], dim="Year")
-    co2e_new = co2e_g.sel({"Item":items}) * scale_co2e_g
+    # Update per cap/day values and per year values using the same ratio, which
+    # is independent of population growth
 
-    co2e_scaled.loc[{"Item":items}] = co2e_new
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
 
-    return co2e_scaled
+    # datablock["food"]["g/cap/day"] = out
 
-def engineered_sequestration_model(food, sequestration_dataset, waste_BECCS, overseas_BECCS, land_BECCS, DACCS, n_scale):
-    # waste_BECCS in Mt CO2e / yr
-    # overseas_BECCS in Mt CO2e / yr
-    # land_BECCS in percentage
-    # DACCS in Mt CO2e / yr
+    return datablock
 
-    scale_past = xr.DataArray(data = np.zeros(59), coords = {"Year":np.arange(1961,2020)})
-    scale_future = xr.DataArray(data = logistic(n_scale), coords = {"Year":np.arange(2020,2101)})
-    scale = xr.concat([scale_past, scale_future], dim="Year")
+def foresting_spared_model(datablock, forest_fraction, bdleaf_conif_ratio):
+    """Replaces a the "spared" land type fraction and sets it to "forested".
+    """
 
-    waste_BECCS_arr = waste_BECCS * scale * 1e6
-    overseas_BECCS_arr = overseas_BECCS * scale * 1e6
-    DACCS_arr = DACCS * scale * 1e6
+    # Load land use data from datablock
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
 
-    waste_BECCS_arr.name = "BECCS from waste"
-    DACCS_arr.name = "DACCS"
-    overseas_BECCS_arr.name = "BECCS from overseas"
+    # Compute spared fraction to be re forested and remove from the spared class
+    delta_spared = pctg.loc[{"aggregate_class":"Spared"}] * forest_fraction
+    pctg.loc[{"aggregate_class":"Spared"}] -= delta_spared
 
-    sequestration_dataset.update({"BECCS from waste":waste_BECCS_arr,
-                                  "BECCS from overseas":overseas_BECCS_arr,
-                                  "DACCS":DACCS_arr})
+    # Add forested percentage to the land use map
+    pctg.loc[{"aggregate_class":"Broadleaf woodland"}] += delta_spared * bdleaf_conif_ratio
+    pctg.loc[{"aggregate_class":"Coniferous woodland"}] += delta_spared * (1-bdleaf_conif_ratio)
+
+    # Rewrite land use data to datablock
+    datablock["land"]["percentage_land_use"] = pctg
+
+    return datablock
+
+def ccs_model(datablock, waste_BECCS, overseas_BECCS, DACCS):
+    """Computes the CCS sequestration from the different sources
     
-    food = scale_add(food=food,
-                    element_in="production",
-                    element_out="imports",
-                    items = plant_items,
-                    scale = 1 - land_BECCS / 100 * scale)
+    Parameters
+    ----------
 
-    return food, sequestration_dataset
+    waste_BECCS : float
+        Total maximum sequestration (in t CO2e / year) from food waste-origin BECCS
+    overseas_BECCS : float
+        Total maximum sequestration (in t CO2e / year) from overseas biomass BECCS
+    DACCS : float
+        Total maximum sequestration (in t CO2e / year) from DACCS
+    """
+    
+    timescale = datablock["global_parameters"]["timescale"]
+    food_orig = datablock["food"]["g/cap/day"]
+    pctg = datablock["land"]["percentage_land_use"]
+
+    # Compute the total area of BECCS land used in hectares, and the total
+    # sequestration in Mt CO2e / year
+
+    land_BECCS_area = pctg.sel({"aggregate_class":"BECCS"}).sum().to_numpy()
+    land_BECCS = land_BECCS_area * 23.5
+
+    logistic_0_val = logistic_scale(food_orig.Year.values[0],
+                                           2020,
+                                           2020 + timescale,
+                                           food_orig.Year.values[-1],
+                                           c_init=0,
+                                           c_end=1)
+
+    waste_BECCS_seq_array = waste_BECCS * logistic_0_val
+    overseas_BECCS_seq_array = overseas_BECCS * logistic_0_val
+    DACCS_seq_array = DACCS * logistic_0_val
+    land_BECCS_seq_array = land_BECCS * logistic_0_val
+
+    # Create a dataset with the different sequestration sources
+    seq_ds = xr.Dataset({"BECCS from waste": waste_BECCS_seq_array,
+                         "BECCS from overseas biomass": overseas_BECCS_seq_array,
+                         "BECCS from land": land_BECCS_seq_array,
+                         "DACCS": DACCS_seq_array})
+    
+    seq_da = seq_ds.to_array(dim="Item", name="sequestration")
+    
+    if "sequestration" not in datablock["impact"]:
+        datablock["impact"]["sequestration"] = {} 
+        datablock["impact"]["co2e_sequestration"] = seq_da
+    else:
+        # append sequestration to existing sequestration da
+        seq_da_in = datablock["impact"]["co2e_sequestration"]
+        seq_da = xr.concat([seq_da_in, seq_da], dim="Item")
+        datablock["impact"]["co2e_sequestration"] = seq_da
+
+    # Compute the total cost of sequestration in pounds per year
+    cost_BECCS_tCO2e = linear_scale(food_orig.Year.values[0],
+                              2030,
+                              2050,
+                              food_orig.Year.values[-1],
+                              c_init=123,
+                              c_end=93)
+    
+    cost_DACCS_tCO2e = linear_scale(food_orig.Year.values[0],
+                                    2030,
+                                    2050,
+                                    food_orig.Year.values[-1],
+                                    c_init=245,
+                                    c_end=180)
+
+    cost_waste_BECCS = waste_BECCS_seq_array * cost_BECCS_tCO2e
+    cost_overseas_BECCS = overseas_BECCS_seq_array * cost_BECCS_tCO2e
+    cost_land_BECCS = land_BECCS_seq_array * cost_BECCS_tCO2e
+    cost_DACCSS = DACCS_seq_array * cost_DACCS_tCO2e
+
+    cost_CCS_ds = xr.Dataset({"BECCS from waste": cost_waste_BECCS,
+                             "BECCS from overseas biomass": cost_overseas_BECCS,
+                             "BECCS from land": cost_land_BECCS,
+                             "DACCS": cost_DACCSS})
+    
+    cost_CCS_da = cost_CCS_ds.to_array(dim="Item", name="cost")
+    datablock["impact"]["cost"] = cost_CCS_da
+
+    return datablock    
+
+def forest_sequestration_model(datablock, seq_broadleaf_ha_yr, seq_coniferous_ha_yr):
+    """Computes total annual sequestration from the different sources"""
+
+    
+    timescale = datablock["global_parameters"]["timescale"]
+    food_orig = datablock["food"]["g/cap/day"]
+
+    # Load the land use data from the datablock
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+
+    # Compute forest area in ha, maximum anual sequestration, and growth curve
+    area_broadleaf = pctg.loc[{"aggregate_class":"Broadleaf woodland"}].sum().to_numpy()
+    area_coniferous = pctg.loc[{"aggregate_class":"Coniferous woodland"}].sum().to_numpy()
+
+    max_seq_broadleaf = area_broadleaf * seq_broadleaf_ha_yr
+    max_seq_coniferous = area_coniferous * seq_coniferous_ha_yr
+
+    logistic_0_val = logistic_scale(food_orig.Year.values[0],
+                                    2020,
+                                    2020 + timescale,
+                                    food_orig.Year.values[-1],
+                                    c_init=0,
+                                    c_end=1)
+    
+    broadleaf_seq = max_seq_broadleaf * logistic_0_val
+    coniferous_seq = max_seq_coniferous * logistic_0_val
+
+    # Create a dataset with the different sequestration sources
+    seq_ds = xr.Dataset({"Broadleaved woodland": broadleaf_seq,
+                              "Coniferous woodland": coniferous_seq})
+    
+    seq_da = seq_ds.to_array(dim="Item", name="sequestration")
+    
+    if "sequestration" not in datablock["impact"]:
+        datablock["impact"]["sequestration"] = {} 
+        datablock["impact"]["co2e_sequestration"] = seq_da
+    else:
+        # append sequestration to existing sequestration da
+        seq_da_in = datablock["impact"]["co2e_sequestration"]
+        seq_da = xr.concat([seq_da_in, seq_da], dim="Item")
+        datablock["impact"]["co2e_sequestration"] = seq_da
+
+    # Compute agroecology sequestration
+
+    return datablock
+
+def agroecology_model(datablock):
+    """Changes traditional agricultural land use to agroecological land use."""
+
+    # Change arable land to agroforestry, and scales food production accordingly
+
+    # Change pasture land to silvopasture, and scales food production accordingly
+
+    return datablock
+
+def scale_impact(datablock, item_origin, scale_factor):
+    """ Scales the impact values for the selected items by multiplying them by
+    a multiplicative factor.
+    """
+
+    timescale = datablock["global_parameters"]["timescale"]
+    # load quantities and impacts
+    food_orig = datablock["food"]["g/cap/day"]
+    impacts = datablock["impact"]["gco2e/gfood"].copy(deep=True)
+
+    # select the items to scale, making sure they match what is in the impact da
+    items = food_orig.sel(Item = food_orig.Item_origin==item_origin).Item.values
+    items = items[np.isin(items, impacts.Item.values)]
+
+    scale = logistic_scale(food_orig.Year.values[0],
+                           2020,
+                           2030 + timescale,
+                           food_orig.Year.values[-1],
+                           c_init=1,
+                           c_end=scale_factor)
+
+    # scale the impacts
+    impacts.loc[{"Item": items}] *= scale
+    datablock["impact"]["gco2e/gfood"] = impacts
+
+    return datablock
+
+def BECCS_farm_land(datablock, farm_percentage):
+    """Repurposes farm land for BECCS, reducing the amount of food production,
+    and increasing the amount of CO2e sequestered.
+    """
+
+    timescale = datablock["global_parameters"]["timescale"]
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+    old_use = datablock["land"]["percentage_land_use"].sel({"aggregate_class":"Arable"}).sum()
+
+    to_spare = pctg.sel({"aggregate_class":"Arable"})
+    # Spare the specified land type
+    delta_spared =  to_spare * farm_percentage
+    pctg.loc[{"aggregate_class":"Arable"}] -= delta_spared
+
+    if "BECCS" not in pctg.aggregate_class.values:
+        spared_new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(pctg.isel(aggregate_class=0)))
+        spared_new_class["aggregate_class"] = "BECCS"
+        pctg = xr.concat([pctg, spared_new_class], dim="aggregate_class")
+
+    pctg.loc[{"aggregate_class":"BECCS"}] += delta_spared
+
+    # Add spared class to the land use map
+    datablock["land"]["percentage_land_use"] = pctg
+
+    # Scale food production and imports
+
+    new_use = pctg.sel({"aggregate_class":"Arable"}).sum()
+    scale_use = (new_use/old_use).to_numpy()
+
+    food_orig = datablock["food"]["g/cap/day"]
+    y0 = food_orig.Year.values[0]
+    y1 = 2020
+    y2 = 2030 + timescale
+    y3 = food_orig.Year.values[-1]
+
+    scale_spare = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=scale_use)
+
+    scaled_items = food_orig.sel(Item=food_orig.Item_origin=="Vegetal Products").Item.values
+
+    out = food_orig.fbs.scale_add(element_in="production",
+                                  element_out="imports",
+                                  scale=scale_spare,
+                                  items=scaled_items,
+                                  add=False)
+    
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Update per cap/day values and per year values using the same ratio, which
+    # is independent of population growth
+
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
+
+    return datablock
