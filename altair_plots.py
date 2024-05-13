@@ -43,7 +43,7 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ym
     
     return c
 
-def plot_years_total(food, ylabel=None, sumdim=None):
+def plot_years_total(food, ylabel=None, sumdim=None, color="red"):
     years = food.Year.values
     if sumdim is not None and sumdim in food.dims:
         total = food.sum(dim="Item")
@@ -52,9 +52,9 @@ def plot_years_total(food, ylabel=None, sumdim=None):
 
     df = pd.DataFrame(data={"Year":years, "value":total})
     c = alt.Chart(df).encode(
-    alt.X('Year:O', axis=alt.Axis(values = np.linspace(1960, 2100, 8))),
-    alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel))
-    ).mark_line(color='red')
+        alt.X('Year:O', axis=alt.Axis(values = np.linspace(1960, 2100, 8))),
+        alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel))
+    ).mark_line(color=color)
 
     return c
 
@@ -101,12 +101,7 @@ def plot_bars_altair(food, show="Item", x_axis_title='', xlimit=None):
         color=alt.Color('Item', scale=alt.Scale(domain=["Animal Products", "Cultured Product", "Vegetal Products"], range=["red", "blue", "green"])),
         opacity=alt.condition(selection, alt.value(0.9), alt.value(0.5)),
         tooltip='Item:N',
-        ).add_params(selection).properties(height=500).configure_axisX(
-                labelAngle=45
-            ).configure_axis(
-                labelFontSize=20,
-                titleFontSize=20,
-            )
+        ).add_params(selection).properties(height=500)
 
     return c
 

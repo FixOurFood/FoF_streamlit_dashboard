@@ -56,7 +56,8 @@ default_widget_values = {
     "bdleaf_conif_ratio": 50,
     "bdleaf_seq_ha_yr": 12.5,
     "conif_seq_ha_yr": 23.5,
-    "nutrient_constant": "Energy",    
+    "nutrient_constant": "kCal/cap/day",
+    "domestic_use_source": "Production"    
 }
 
 def reset_all_sliders():

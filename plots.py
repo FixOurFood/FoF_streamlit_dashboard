@@ -45,18 +45,25 @@ def plots(datablock):
         emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
         emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
-        option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
+        col_opt, col_element = st.columns([1,1])
+        with col_opt:
+            option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
+        with col_element:
+            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports"])
 
         # f = plot_years_total(emissions_baseline["food"].sum(dim="Item"), xlabel="Year")
 
         if option_key == "Food origin":
-            f = plot_years_altair(emissions["production"]/1e6, show="Item_origin", ylabel="t CO2e / Year")
+            f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel="t CO2e / Year")
 
         elif option_key == "Food group":
-            f = plot_years_altair(emissions["production"]/1e6, show="Item_group", ylabel="t CO2e / Year")
+            f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel="t CO2e / Year")
 
         # Plot sequestration
         f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
+        f=f.configure_axis(
+            labelFontSize=15,
+            titleFontSize=15)
 
     # Emissions per food item from each group
     # ---------------------------------------
@@ -72,6 +79,9 @@ def plots(datablock):
         to_plot = emissions["production"].sel(Item=emissions["Item_group"] == option_key)/1e6
 
         f = plot_years_altair(to_plot, show="Item_name", ylabel="t CO2e / Year")
+        f = f.configure_axis(
+                labelFontSize=15,
+                titleFontSize=15)
 
     # # Temperature anomaly plot as a function of time
     # # ----------------------------------------------
@@ -98,15 +108,29 @@ def plots(datablock):
         to_plot = to_plot.groupby("Item_origin").sum().rename({"Item_origin":"Item"})
 
         f = plot_bars_altair(to_plot, show="Item", x_axis_title=option_key, xlimit=per_cap_options[option_key])
+
+        if option_key == "kCal/cap/day":
+            f += alt.Chart(pd.DataFrame({
+            'Energy': [datablock["food"]["rda_kcal"]],
+            'color': ['red']
+            })).mark_rule().encode(
+            x='Energy:Q',
+            color=alt.Color('color:N', scale=None)
+            )
         
         
     # Self-sufficiency ratio as a function of time
     # --------------------------------------------
     elif plot_key == "Self-sufficiency ratio":
 
-        SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=slice(None, metric_yr))
-        f = plot_years_total(SSR)
-        
+        option_key = st.selectbox("Plot options", ["g/cap/day", "kCal/cap/day", "g_prot/cap/day", "g_fat/cap/day"])
+
+        SSR = datablock["food"][option_key].fbs.SSR().sel(Year=slice(None, metric_yr)) * 100
+
+        f = plot_years_total(SSR, ylabel="Self-sufficiency ratio [%]").configure_axis(
+                labelFontSize=20,
+                titleFontSize=20)
+
     # Various land plots, including Land use and ALC
     # ----------------------------------------------
     elif plot_key == "Land":
@@ -136,8 +160,8 @@ def plots(datablock):
             patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11]]
             plot1.legend(handles=patches, loc="upper left")
 
-            inset = f.add_axes([left, bottom, width, height])
             left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
+            inset = f.add_axes([left, bottom, width, height])
             inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list )
     
         plot1.axis("off")

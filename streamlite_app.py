@@ -35,10 +35,10 @@ if "datablock_baseline" not in st.session_state:
 help = pd.read_csv(st.secrets["tooltips_url"], dtype='string')
 
 # GUI
-st.set_page_config(layout='wide', initial_sidebar_state='expanded')
-
-with open('style.css') as f:
-    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+st.set_page_config(layout='wide',
+                   initial_sidebar_state='expanded',
+                   page_title="Agrifood Calculator",
+                   page_icon="images/fof_icon.png")
 
 with st.sidebar:
 
@@ -46,8 +46,13 @@ with st.sidebar:
 #        Sidebar
 # ------------------------
 
-    # st.image("images/fof_logo.png")
     st.markdown("# AgriFood Calculator")
+    st.markdown('''<div style="text-align: justify;">
+            Move the <b>ambition level</b> sliders to explore the outcomes of
+            different interventions on key metrics of the food system,
+            including GHG emissions, sequestration and land uses.
+            </div>''', unsafe_allow_html=True)
+    st.write("")
 
     col1, col2 = st.columns([7.5,2.5])
     with col1:
@@ -62,12 +67,10 @@ with st.sidebar:
     # Consumer demand interventions
     with st.expander("**:spaghetti: Consumer demand**", expanded=True):
 
-        # ruminant = cw.label_plus_slider('Reduce ruminant meat consumption', ratio=(6,4),
         ruminant = st.slider('Reduce ruminant meat consumption',
                                         min_value=0, max_value=100, step=25,
                                         key="d1", help=help["sidebar_consumer"][1])
         
-        # meatfree = cw.label_plus_slider('Number of meat free days a week', ratio=(6,4),
         meatfree = st.slider('Number of meat-free days a week',
                                         min_value=0, max_value=7, step=1,
                                         key="d2", help=help["sidebar_consumer"][2])
@@ -82,17 +85,13 @@ with st.sidebar:
         if len(meatfree_extra_items) > 0:
             meatfree_extra_items = np.hstack(meatfree_extra_items)
 
-
-        # waste = cw.label_plus_slider('Food waste and over-eating reduction', ratio=(6,4),
         waste = st.slider('Food waste and over-eating reduction',
                                         min_value=0, max_value=100, step=25,
                                         key="d4", help=help["sidebar_consumer"][4])
 
-        # labmeat = cw.label_plus_slider('Increase labmeat uptake', ratio=(6,4),
         labmeat = st.slider('Increase cultured meat uptake',
                                         min_value=0, max_value=100, step=25,
-                                        key="d5", help=help["sidebar_consumer"][6])
-       
+                                        key="d5", help=help["sidebar_consumer"][6])       
 
         extra_items_cultured = cw.label_plus_multiselect('Also replace with cultured meat',
                                         options=[[2733], [2734]],
@@ -121,36 +120,12 @@ with st.sidebar:
         foresting_spared = st.slider('Forested spared land fraction',
                                                 min_value=0, max_value=100, step=25,
                                                 key='l3', help=help["sidebar_land"][2])
-
         
-        silvopasture = st.slider('Farmland % converted to silvopasture',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l4', help=help["sidebar_land"][3])
-        
-
-        agroforestry = st.slider('Farmland % converted to agroforestry',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l5', help=help["sidebar_land"][4])
-       
-       
-        # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
-        # biofuel_spared = st.slider('Biofuel crops spared land fraction',
+        # silvopasture = st.slider('Farmland % converted to silvopasture',
         #                                         min_value=0, max_value=100, step=25,
-        #                                         key='l4', help=help["sidebar_land"][3])
-       
-        # CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',ratio=(6,4),
-        # CCS_spared = st.slider('Carbon capture and storage spared land fraction',
-        #                                         min_value=0, max_value=100, step=25,
-        #                                         key='l5', help=help["sidebar_land"][4])
+        #                                         key='l4', help=help["sidebar_land"][3])        
 
-
-        # biofuel_spared = cw.label_plus_slider('Biofuel crops spared land fraction',ratio=(6,4),
-        # biofuel_spared = st.slider('Biofuel crops spared land fraction',
-        #                                         min_value=0, max_value=100, step=25,
-        #                                         key='l4', help=help["sidebar_land"][3])
-       
-        # CCS_spared = cw.label_plus_slider('Carbon capture and storage spared land fraction',ratio=(6,4),
-        # CCS_spared = st.slider('Carbon capture and storage spared land fraction',
+        # agroforestry = st.slider('Farmland % converted to agroforestry',
         #                                         min_value=0, max_value=100, step=25,
         #                                         key='l5', help=help["sidebar_land"][4])
 
@@ -186,7 +161,10 @@ with st.sidebar:
                                                 min_value=0, max_value=4, step=1,
                                                 key='i6', help=help["sidebar_innovation"][5])
 
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['i1', 'i2', 'i3', 'i4', 'i5', 'i6']}, key='reset_i')
+        st.button("Reset", on_click=update_slider,
+                  kwargs={"values": [0,0,0,0,0,0],
+                          "keys": ['i1', 'i2', 'i3', 'i4', 'i5', 'i6']},
+                  key='reset_i')
 
     # Policy interventions
     #with st.expander("**:office: Policy interventions**"):
@@ -202,17 +180,33 @@ with st.sidebar:
         bdleaf_conif_ratio = st.slider('Ratio of coniferous to broadleaved reforestation', min_value=0, max_value=100, value=50, step=10, key = "bdleaf_conif_ratio", help = help["advanced_options"][5])
         bdleaf_seq_ha_yr = st.slider('Broadleaved forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.5, step=0.5, key = "bdleaf_seq_ha_yr", help = help["advanced_options"][6])
         conif_seq_ha_yr = st.slider('Coniferous forest CO2 sequestration [t CO2 / ha / year]', min_value=15., max_value=30., value=23.5, step=0.5, key = "conif_seq_ha_yr", help = help["advanced_options"][7])
-
+        
+        domestic_use_source = st.radio("What source to prioritize for domestic use change",
+                                       ("Production", "Imports"),
+                                       horizontal=True,
+                                       index=0,
+                                       help=help["advanced_options"][8],
+                                       key='domestic_use_source')
+        
         scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                                    ('Weight', 'Proteins', 'Fat', 'Energy'),
+                                    ('g/cap/day', 'g_prot/cap/day', 'g_fat/cap/day', 'kCal/cap/day'),
                                     horizontal=True,
                                     index=3,
-                                    help=help["sidebar_consumer"][0],
+                                    help=help["advanced_options"][9],
                                     key='nutrient_constant')
         
         st.button("Reset", on_click=update_slider,
-                  kwargs={"values": default_widget_values.values(),
-                          "keys": default_widget_values.keys()},
+                  kwargs={"values": [25, 2250, 20, 30, 30, 50, 12.5, 23.5, "Production", "kCal/cap/day"],
+                          "keys": ['labmeat_slider',
+                                     'rda_slider',
+                                     'timescale_slider',
+                                     'max_ghg_animal',
+                                     'max_ghg_plant',
+                                     'bdleaf_conif_ratio',
+                                     'bdleaf_seq_ha_yr',
+                                     'conif_seq_ha_yr',
+                                     'domestic_use_source',
+                                     'nutrient_constant']},
                   key='reset_a')
 
 
@@ -244,20 +238,26 @@ with col1:
     
     food_system.add_step(ruminant_consumption_model,
                          {"ruminant_scale":ruminant,
-                          "items":[2731, 2732]})
+                          "items":[2731, 2732],
+                          "source":domestic_use_source,
+                          "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(meat_consumption_model,
                          {"meat_scale":meatfree,
-                          "extra_items":meatfree_extra_items})
+                          "extra_items":meatfree_extra_items,
+                          "source":domestic_use_source,
+                          "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(food_waste_model,
                          {"waste_scale":waste,
-                          "kcal_rda":rda_kcal})
+                          "kcal_rda":rda_kcal,
+                          "source":domestic_use_source})
 
     food_system.add_step(cultured_meat_model,
                          {"cultured_scale":labmeat/100,
                           "labmeat_co2e":labmeat_co2e,
-                          "extra_items":extra_items_cultured})
+                          "extra_items":extra_items_cultured,
+                          "source":domestic_use_source})
     
     # Land management
     food_system.add_step(spare_alc_model,

@@ -50,7 +50,7 @@ def project_future(datablock, scale):
 
     return datablock
 
-def ruminant_consumption_model(datablock, ruminant_scale, items):
+def ruminant_consumption_model(datablock, ruminant_scale, items, source, scaling_nutrient):
     """Reduces per capita daily ruminant meat intake and replaces its
     consumption by all other items keeping the overall food consumption constant
     """
@@ -59,8 +59,9 @@ def ruminant_consumption_model(datablock, ruminant_scale, items):
     timescale = datablock["global_parameters"]["timescale"]
     # We can use any quantity here, either per cap/day or per year. The ratio
     # will cancel out the population growth
-    food_orig = datablock["food"]["kCal/cap/day"]
+    food_orig = datablock["food"][scaling_nutrient]
 
+    source = source.lower()
 
     # Balanced scaling. Reduce food, reduce imports, keep kCal constant
     out = balanced_scaling(fbs=food_orig,
@@ -70,11 +71,10 @@ def ruminant_consumption_model(datablock, ruminant_scale, items):
                            year=2020,
                            scale=1-ruminant_scale/100,
                            adoption="logistic",
-                        #    origin="-production",
-                           origin="-imports",
+                           origin="-" + source,
                            constant=True,
                            fallback="-exports")
-    
+
     # Scale feed, seed and processing
     feed_scale = out["production"].sel(Item=out.Item_origin=="Animal Products").sum(dim="Item") \
                 / food_orig["production"].sel(Item=food_orig.Item_origin=="Animal Products").sum(dim="Item")
@@ -106,13 +106,13 @@ def ruminant_consumption_model(datablock, ruminant_scale, items):
 
     return datablock
 
-def meat_consumption_model(datablock, meat_scale, extra_items):
+def meat_consumption_model(datablock, meat_scale, extra_items, source, scaling_nutrient):
     """Reduces per capita daily meat intake and replaces its consumption by all
     other items keeping the overall food consumption constant
     """
 
     timescale = datablock["global_parameters"]["timescale"]
-    food_orig = datablock["food"]["kCal/cap/day"]
+    food_orig = datablock["food"][scaling_nutrient]
 
     # Select items
     animal_items = food_orig.sel(Item=food_orig.Item_group=="Meat").Item.values
@@ -120,6 +120,8 @@ def meat_consumption_model(datablock, meat_scale, extra_items):
     if len(extra_items) > 0:
         animal_items = np.concatenate([animal_items, extra_items])
     
+    source = source.lower()
+
     # Balanced scaling. Reduce food, reduce imports, keep kCal constant
     out = balanced_scaling(fbs=food_orig,
                            items=animal_items,
@@ -128,8 +130,7 @@ def meat_consumption_model(datablock, meat_scale, extra_items):
                            year=2020,
                            scale=1-meat_scale/7,
                            adoption="logistic",
-                        #    origin="-production",
-                           origin="-imports",
+                           origin="-" + source,
                            constant=True,
                            fallback="-exports")
     
@@ -154,9 +155,17 @@ def meat_consumption_model(datablock, meat_scale, extra_items):
     
     # If production is negative, set to zero and add the negative delta to
     # imports
-    delta_neg = out["production"].where(out["production"] < 0, other=0)
-    out["production"] -= delta_neg
-    out["imports"] += delta_neg
+
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
+
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] += delta_neg
     
     ratio = out / food_orig
     ratio = ratio.where(~np.isnan(ratio), 1)
@@ -317,7 +326,7 @@ def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
 
     return out
 
-def food_waste_model(datablock, waste_scale, kcal_rda):
+def food_waste_model(datablock, waste_scale, kcal_rda, source):
     """Reduces daily per capita per day intake energy above a set threshold.
     """
 
@@ -342,11 +351,11 @@ def food_waste_model(datablock, waste_scale, kcal_rda):
     scale_waste = logistic_scale(y0, y1, y2, y3, c_init=1, c_end=1-waste_factor)
 
     # Set to "imports" or "production" to choose which element of the food system supplies the change in consumption
-    element_out = "imports"
+    source = source.lower()
 
     # Scale food and subtract difference from production
     out = food_orig.fbs.scale_add(element_in="food",
-                                  element_out=element_out,
+                                  element_out=source,
                                   scale=scale_waste)
     
     # Scale feed, seed and processing
@@ -368,11 +377,18 @@ def food_waste_model(datablock, waste_scale, kcal_rda):
     out = out.fbs.scale_add(element_in="processing",element_out="production",
                             scale=processing_scale)
 
-    # If supply element is negative, set to zero and add the negative delta to
-    # imports
-    delta_neg = out[element_out].where(out[element_out] < 0, other=0)
-    out[element_out] -= delta_neg
-    out["exports"] -= delta_neg
+    # If supply element is negative, set to zero and add the negative delta to imports
+
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
+
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] -= delta_neg
 
     # Scale all per capita qantities proportionally
     ratio = out / food_orig
@@ -384,7 +400,7 @@ def food_waste_model(datablock, waste_scale, kcal_rda):
 
     return datablock
 
-def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, extra_items):
+def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, extra_items, source):
     """Replaces selected meat items by cultured products on a weight by weight
     basis. 
     """
@@ -418,18 +434,26 @@ def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, extra_items):
 
 
     # Scale and remove from suplying element
-    element_out = "production"
+    source = source.lower()
     out = food_orig.fbs.scale_add(element_in="food",
-                                  element_out=element_out,
+                                  element_out=source,
                                   scale=scale_labmeat,
                                   items=items_to_replace,
                                   add=True)
     
     # If production is negative, set to zero and add the negative delta to
     # imports
-    delta_neg = out[element_out].where(out[element_out] < 0, other=0)
-    out[element_out] -= delta_neg
-    out["imports"] += delta_neg
+
+    if source == "production":
+        fallback = "imports"
+    elif source == "imports":
+        fallback = "production"
+    elif source == "exports":
+        fallback = "production"
+
+    delta_neg = out[source].where(out[source] < 0, other=0)
+    out[source] -= delta_neg
+    out[fallback] += delta_neg
     
     # Add delta to cultured meat
     delta = (datablock["food"]["g/cap/day"]-out).sel(Item=items_to_replace).sum(dim="Item")
