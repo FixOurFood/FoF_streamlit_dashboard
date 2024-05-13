@@ -388,7 +388,7 @@ def food_waste_model(datablock, waste_scale, kcal_rda, source):
 
     delta_neg = out[source].where(out[source] < 0, other=0)
     out[source] -= delta_neg
-    out[fallback] -= delta_neg
+    out[fallback] += delta_neg
 
     # Scale all per capita qantities proportionally
     ratio = out / food_orig
