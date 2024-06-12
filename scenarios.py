@@ -1,5 +1,5 @@
 import streamlit as st
-from helper_functions import update_slider
+from utils.helper_functions import update_slider
 
 keys = ["d1", "d5", "i1", "i2", "i3","i4","l3","l4","l5"]
 

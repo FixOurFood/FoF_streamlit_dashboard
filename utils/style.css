@@ -1,0 +1,27 @@
+[data-testid="stSidebarUserContent"]{
+     padding-top: 0.5rem;
+     padding-bottom: 1rem;
+     padding-left: 1.5rem;
+     padding-right: 1.5rem;
+}
+
+[data-testid="stAppViewBlockContainer"]{
+     padding-top: 1.5rem;
+     padding-left: 1rem;
+     padding-right: 1rem;
+}
+
+div.stSlider [data-testid="stTickBar"] {
+     display: none;
+}
+
+[data-testid="stBottomBlockContainer"]{
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+button[title="View fullscreen"] {
+     display: none;
+ }

@@ -3,10 +3,10 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import matplotlib.patches as mpatches
-from altair_plots import *
+from utils.altair_plots import *
 from agrifoodpy.food.food import FoodBalanceSheet
 from glossary import *
-from helper_functions import *
+from utils.helper_functions import *
 
 
 def plots(datablock):
@@ -16,35 +16,25 @@ def plots(datablock):
     # ----------------------------------------
 
     f, plot1 = plt.subplots(1, figsize=(7,7))
-    
+
     # Add toggle to switch year horizon between 2050 and 2100
-    col_multiselect , col2050, col, col2100, _ = st.columns([16,1,1,1,1])
+    col_multiselect, _, col_but_metric_yr, _ = st.columns([12,1,2,1])
+
     with col_multiselect:
         plot_key = st.selectbox("Figure to display", option_list)
-    with col2050:
-        st.text("")
-        st.text("")
-        st.markdown("2050")
-    with col:
-        st.text("")
-        st.text("")
-        yr = lambda b: 2100 if b else 2050
-        metric_yr = yr(st.toggle("Metrics years",
-                                 value=True,
-                                 key="metrics_years",
-                                 label_visibility="collapsed"))
-    with col2100:
-        st.text("")
-        st.text("")
-        st.markdown("2100")
 
-    
+    with col_but_metric_yr:
+        metric_yr = st.slider("Year mode",
+                              min_value=2050,
+                              max_value=2100,
+                              step=50,
+                              value=2050)
+
     # Emissions per food group or origin
     # ----------------------------------
     if plot_key == "CO2e emission per food group":
         emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
-        emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
         col_opt, col_element = st.columns([1,1])
         with col_opt:
             option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
@@ -61,6 +51,11 @@ def plots(datablock):
 
         # Plot sequestration
         f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
+        emissions_sum = emissions["production"].sum(dim="Item")
+        seqestration_sum = seq_da.sum(dim="Item")
+
+        f += plot_years_total((emissions_sum/1e6 - seqestration_sum), ylabel="t CO2e / Year")
+
         f=f.configure_axis(
             labelFontSize=15,
             titleFontSize=15)
@@ -69,26 +64,24 @@ def plots(datablock):
     # ---------------------------------------
     elif plot_key == "CO2e emission per food item":
         emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
-        # emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
-        option_key = st.selectbox("Plot options", np.unique(emissions.Item_group.values))
+        emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
+        col_opt, col_element = st.columns([1,1])
+        with col_opt:
+            option_key = st.selectbox("Plot options", np.unique(emissions.Item_group.values))
+        with col_element:
+            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports"])
 
         # plot1.plot(emissions_baseline.Year.values,
         #            emissions_baseline["food"].sel(
         #                Item=emissions_baseline["Item_group"] == option_key).sum(dim="Item"))
         
-        to_plot = emissions["production"].sel(Item=emissions["Item_group"] == option_key)/1e6
+        to_plot = emissions[element_key].sel(Item=emissions["Item_group"] == option_key)/1e6
 
         f = plot_years_altair(to_plot, show="Item_name", ylabel="t CO2e / Year")
         f = f.configure_axis(
                 labelFontSize=15,
                 titleFontSize=15)
-
-    # # Temperature anomaly plot as a function of time
-    # # ----------------------------------------------
-    # elif plot_key == "Temperature anomaly":
         
-    #     T = datablock["impact"]["T"]
-    #     f = plot_years_total(T)
 
     # FAOSTAT bar plot with per-capita daily values
     # ---------------------------------------------
@@ -99,13 +92,11 @@ def plots(datablock):
                    "g_co2e/cap/day": 18000,
                    "kCal/cap/day": 14000}
 
-        
         option_key = st.selectbox("Plot options", list(per_cap_options.keys()))
-
 
         to_plot = datablock["food"][option_key].sel(Year=metric_yr).fillna(0)
         to_plot.Item_origin.values = np.array(to_plot.Item_origin.values, dtype=str)
-        to_plot = to_plot.groupby("Item_origin").sum().rename({"Item_origin":"Item"})
+        to_plot = to_plot.fbs.group_sum(coordinate="Item_origin", new_name="Item")
 
         f = plot_bars_altair(to_plot, show="Item", x_axis_title=option_key, xlimit=per_cap_options[option_key])
 
@@ -148,21 +139,21 @@ def plots(datablock):
             ALC_toplot.land.plot(ax=plot1)
 
         elif option_key == "Land use":
-            #             "broadl" "conif"  "arable"  "improv"  "semi-n"  "mount"  "saltw" "freshw""coast" "built" "purple"
-            color_list = ["green", "green", "yellow", "orange", "orange", "gray", "gray", "gray", "gray", "gray", "purple", "red"]
-            label_list = ["Forest", "Forest", "Arable", "Grass", "Grass", "Mountain", "Water", "Water", "Water", "Non agricultural", "Spared", "BECCS"]
+            #             "broadl" "conif"  "arable"  "improv"  "semi-n"  "mount" "saltw" "freshw" "coast" "built" "spared", "silvo", "beccs"
+            color_list = ["green", "green", "yellow", "orange", "orange", "gray", "gray", "gray", "gray", "gray", "purple", "lightgreen", "lightblue", "red"]
+            label_list = ["Forest", "Forest", "Arable", "Pasture", "Pasture", "Mountain", "Water", "Water", "Water", "Non agricultural", "Spared", "Silvopasture", "Agroforestry", "BECCS"]
             cmap_tar = colors.ListedColormap(color_list)
             bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
             norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
 
             plot1.imshow(LC_toplot, interpolation="none", origin="lower",
                          cmap=cmap_tar, norm=norm_tar)
-            patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11]]
+            patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11,12,13]]
             plot1.legend(handles=patches, loc="upper left")
 
             left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
             inset = f.add_axes([left, bottom, width, height])
-            inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list )
+            inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list)
     
         plot1.axis("off")
 

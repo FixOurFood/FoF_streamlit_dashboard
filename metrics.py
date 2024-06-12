@@ -15,7 +15,7 @@ def metrics(datablock, metric_yr=2100):
     # ----------------------------
     # Environment and biodiversity
     # ----------------------------
-    with st.expander("Environment and biodiversity", expanded=True):
+    with st.expander("Environment and biodiversity", expanded=False):
 
 
         # TODO: This metric is only really useful if we scale to global emissions.
@@ -51,7 +51,7 @@ def metrics(datablock, metric_yr=2100):
     # --------
     # Land use
     # --------
-    with st.expander("Land use", expanded=True):
+    with st.expander("Land use", expanded=False):
         pctg = datablock["land"]["percentage_land_use"]
 
         land_spared_area = pctg.sel({"aggregate_class":"Spared"}).sum().to_numpy()
@@ -68,7 +68,7 @@ def metrics(datablock, metric_yr=2100):
     # --------------
     # Socio-economic
     # --------------
-    with st.expander("Socio-economic", expanded=True):
+    with st.expander("Socio-economic", expanded=False):
 
         cost = datablock["impact"]["cost"]
         total_spending = cost.sel(Year=np.arange(2020, metric_yr)).sum().to_numpy()
@@ -86,7 +86,7 @@ def metrics(datablock, metric_yr=2100):
     # ---------------
     # Food production
     # ---------------
-    with st.expander("Food production", expanded=True):
+    with st.expander("Food production", expanded=False):
 
         SSR = datablock["food"]["g/cap/day"].fbs.SSR()
         food_orig = datablock["food"]["g/cap/day"]

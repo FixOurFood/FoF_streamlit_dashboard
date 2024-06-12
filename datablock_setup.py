@@ -9,7 +9,7 @@ from agrifoodpy_data.land import ALC_1000 as ALC
 from agrifoodpy_data.land import UKCEH_LC_1000
 
 from agrifoodpy.impact.model import fbs_impacts, fair_co2_only
-from pipeline import Pipeline
+from utils.pipeline import Pipeline
 
 datablock = {}
 datablock["food"] = {}

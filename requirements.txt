@@ -1,5 +1,4 @@
 numpy
-agrifoodpy
 netcdf4
 xarray
 pandas
@@ -9,4 +8,5 @@ streamlit
 millify
 fair
 streamlit-modal
+git+https://github.com/FixOurFood/AgriFoodPy.git
 git+https://github.com/FixOurFood/agrifoodpy-data.git@importable

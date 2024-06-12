@@ -1,27 +1,16 @@
 import streamlit as st
+from streamlit_extras.bottom_container import bottom
 
-import matplotlib
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib import colors, cm
-
-import altair as alt
-import numpy as np
-import xarray as xr
-from millify import millify
 import pandas as pd
 import copy
 
-from agrifoodpy.food.food import FoodBalanceSheet
-from agrifoodpy.land.land import LandDataArray
-from pipeline import Pipeline
+from utils.pipeline import Pipeline
+import utils.custom_widgets as cw
+from utils.altair_plots import *
+from utils.helper_functions import *
 
-import custom_widgets as cw
 from glossary import *
-from altair_plots import *
-from helper_functions import *
 from scenarios import call_scenarios, scenarios_dict
-
 
 from datablock_setup import *
 from model import *
@@ -39,6 +28,9 @@ st.set_page_config(layout='wide',
                    initial_sidebar_state='expanded',
                    page_title="Agrifood Calculator",
                    page_icon="images/fof_icon.png")
+
+with open('utils/style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 with st.sidebar:
 
@@ -61,143 +53,219 @@ with st.sidebar:
                      on_change=call_scenarios, key="scenario")
 
     with col2:
-        st.button("Reset \n sliders", on_click=reset_all_sliders,
+        st.button("Reset \n sliders", on_click=reset_sliders,
                   key='reset_all')
 
     # Consumer demand interventions
-    with st.expander("**:spaghetti: Consumer demand**", expanded=True):
+    consumer_slider_keys = ["d1", "d2", "d3", "d4", "d5", "d6", "d7"]
+    st.slider("Consumer demand interventions", min_value=0., max_value=4., step=1.,
+              value=0., key="consumer_bar", label_visibility="collapsed", format="%.1f")
+    
+    consumer_progress_dict = {"bar_key":"consumer_bar",
+                              "bar_values":consumer_slider_keys}
+
+    with st.expander("**:spaghetti: Consumer demand**", expanded=False):
 
         ruminant = st.slider('Reduce ruminant meat consumption',
-                                        min_value=0, max_value=100, step=25,
-                                        key="d1", help=help["sidebar_consumer"][1])
+                        min_value=0, max_value=100, step=25,
+                        key="d1", help=help["sidebar_consumer"][1],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
         
-        meatfree = st.slider('Number of meat-free days a week',
-                                        min_value=0, max_value=7, step=1,
-                                        key="d2", help=help["sidebar_consumer"][2])
-
-        meatfree_extra_items = cw.label_plus_multiselect('Also exclude from meat-free days',
-                                        options=[[2949],
-                                                 [2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769],
-                                                 [2740, 2743, 2948]],
-                                        format_func=item_name_code,
-                                        key='d3', help=help["sidebar_consumer"][3])
+        dairy = st.slider('[Reduce dairy consumption](https://docs.google.com/document/d/1A2J4BYIuXMgrj9tuLtIon8oJTuR1puK91bbUYCI8kHY/edit#heading=h.z0gjphyzstcl)',
+                        min_value=0, max_value=100, step=25,
+                        key="d2", help=help["sidebar_consumer"][2],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
         
-        if len(meatfree_extra_items) > 0:
-            meatfree_extra_items = np.hstack(meatfree_extra_items)
+        pig_poultry_eggs = st.slider('Reduce pig, poultry and eggs consumption',
+                        min_value=0, max_value=100, step=25,
+                        key="d3", help=help["sidebar_consumer"][3],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
+        
+        fruit_veg = st.slider('Increase fruit and vegetable consumption',
+                        min_value=0, max_value=100, step=25,
+                        key="d4", help=help["sidebar_consumer"][4],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
+        
+        cereals = st.slider('Increase cereal consumption',
+                        min_value=0, max_value=100, step=25,
+                        key="d5", help=help["sidebar_consumer"][5],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
 
         waste = st.slider('Food waste and over-eating reduction',
-                                        min_value=0, max_value=100, step=25,
-                                        key="d4", help=help["sidebar_consumer"][4])
+                        min_value=0, max_value=100, step=25,
+                        key="d6", help=help["sidebar_consumer"][6],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)
 
         labmeat = st.slider('Increase cultured meat uptake',
-                                        min_value=0, max_value=100, step=25,
-                                        key="d5", help=help["sidebar_consumer"][6])       
+                        min_value=0, max_value=100, step=25,
+                        key="d7", help=help["sidebar_consumer"][7],
+                        on_change=update_progress,
+                        kwargs=consumer_progress_dict)       
 
-        extra_items_cultured = cw.label_plus_multiselect('Also replace with cultured meat',
-                                        options=[[2733], [2734]],
-                                        format_func=item_name_code,
-                                        key='d6', help=help["sidebar_consumer"][7])
-        
-        if len(extra_items_cultured) > 0:
-            extra_items_cultured = np.hstack(extra_items_cultured)
+        st.button("Reset", on_click=reset_sliders, key='reset_consumer',
+                  kwargs={"keys": [consumer_slider_keys, "consumer_bar"]})
 
+    # Land use change
+    st.slider("Consumer demand interventions", min_value=0., max_value=4., step=1.,
+              value=0., key="land_bar", label_visibility="collapsed", format="%.1f")
 
-        st.button("Reset", on_click=update_slider, key='reset_d',
-                  kwargs={"values": [0, 0, [], 0, 0, []],
-                          "keys": ['d1', 'd2', 'd3', 'd4', 'd5', 'd6']},)
+    with st.expander("**:earth_africa: Land use change**"):
 
-    # Land management interventions
-    with st.expander("**:earth_africa: Land management**"):
+        land_slider_keys = ["l1", "l2", "l3", "i3"]
+        land_progress_dict = {"bar_key":"land_bar",
+                              "bar_values":land_slider_keys}
 
         pasture_sparing = st.slider('Spared ALC 4 & 5 pasture land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l1', help=help["sidebar_land"][0])
-
-        arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l2', help=help["sidebar_land"][1])
-
-        foresting_spared = st.slider('Forested spared land fraction',
-                                                min_value=0, max_value=100, step=25,
-                                                key='l3', help=help["sidebar_land"][2])
-        
-        # silvopasture = st.slider('Farmland % converted to silvopasture',
-        #                                         min_value=0, max_value=100, step=25,
-        #                                         key='l4', help=help["sidebar_land"][3])        
-
-        # agroforestry = st.slider('Farmland % converted to agroforestry',
-        #                                         min_value=0, max_value=100, step=25,
-        #                                         key='l5', help=help["sidebar_land"][4])
-
-        st.button("Reset", on_click=update_slider, kwargs={"values": [0,0,0,0,0,0], "keys": ['l1', 'l2', 'l3', 'l4', 'l5']}, key='reset_l')
-
-    # Technology and innovation
-    with st.expander("**:gear: Technology and innovation**"):
-
-        waste_BECCS = st.slider('BECCS sequestration from waste \n [Mt CO2e / yr]',
-                                                min_value=0, max_value=100, step=1,
-                                                key='i1', help=help["sidebar_innovation"][0])
-
-
-        overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
-                                                min_value=0, max_value=100, step=1,
-                                                key='i2', help=help["sidebar_innovation"][1])
-
+                        min_value=0, max_value=100, step=25,
+                        key='l1', help=help["sidebar_land"][0],
+                        on_change=update_progress,
+                        kwargs=land_progress_dict)        
 
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
-                                                min_value=0, max_value=20, step=1,
-                                                key='i3', help=help["sidebar_innovation"][2])
+                        min_value=0, max_value=20, step=1,
+                        key='i3', help=help["sidebar_innovation"][2],
+                        on_change=update_progress,
+                        kwargs=land_progress_dict)
 
+        arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
+                        min_value=0, max_value=100, step=25,
+                        key='l2', help=help["sidebar_land"][1],
+                        on_change=update_progress,
+                        kwargs=land_progress_dict)
+
+        foresting_spared = st.slider('Forested spared land fraction',
+                        min_value=0, max_value=100, step=25,
+                        key='l3', help=help["sidebar_land"][2],
+                        on_change=update_progress,
+                        kwargs=land_progress_dict)
+        
+        st.button("Reset", on_click=reset_sliders, key='reset_land',
+                  kwargs={"keys":[land_slider_keys, "land_bar"]})
+
+    # Technology and innovation
+    st.slider("Consumer demand interventions", min_value=0., max_value=4., step=1.,
+              value=0., key="innovation_bar", label_visibility="collapsed", format="%.1f")
+    
+    with st.expander("**:gear: Technology and innovation**"):
+        
+        technology_slider_keys = ["i1", "i2", "i4"]
+        technology_progress_dict = {"bar_key":"innovation_bar",
+                                    "bar_values":technology_slider_keys}
+
+        waste_BECCS = st.slider('BECCS sequestration from waste \n [Mt CO2e / yr]',
+                        min_value=0, max_value=100, step=1,
+                        key='i1', help=help["sidebar_innovation"][0],
+                        on_change=update_progress,
+                        kwargs=technology_progress_dict)
+
+        overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
+                        min_value=0, max_value=100, step=1,
+                        key='i2', help=help["sidebar_innovation"][1],
+                        on_change=update_progress,
+                        kwargs=technology_progress_dict)
 
         DACCS = st.slider('DACCS sequestration \n [Mt CO2e / yr]',
-                                                min_value=0, max_value=20, step=1,
-                                                key='i4', help=help["sidebar_innovation"][3])
+                        min_value=0, max_value=20, step=1,
+                        key='i4', help=help["sidebar_innovation"][3],
+                        on_change=update_progress,
+                        kwargs=technology_progress_dict)
 
-        incr_GHGE_innovation_crop = st.slider('Plant production GHGE innovation',
-                                                min_value=0, max_value=4, step=1,
-                                                key='i5', help=help["sidebar_innovation"][4])
+        st.button("Reset", on_click=reset_sliders, key='reset_technology',
+                  kwargs={"keys": [technology_slider_keys, "innovation_bar"]})
+        
+    # Livestock farming practices
+    st.slider("Livestock farming practices", min_value=0., max_value=4., step=1.,
+              value=0., key="livestock_bar", label_visibility="collapsed", format="%.1f")
+    
+    with st.expander("**:cow: Livestock farming practices**"):
 
-        incr_GHGE_innovation_meat = st.slider('Animal production GHGE innovation',
-                                                min_value=0, max_value=4, step=1,
-                                                key='i6', help=help["sidebar_innovation"][5])
+        livestock_slider_keys = ["l4", "lf1", "lf2", "lf3"]
+        livestock_progress_dict = {"bar_key":"livestock_bar",
+                                   "bar_values":livestock_slider_keys}
+        
+        silvopasture = st.slider('Pasture land % converted to silvopasture',
+                        min_value=0, max_value=100, step=25,
+                        key='l4', help=help["sidebar_land"][3],
+                        on_change=update_progress,
+                        kwargs=livestock_progress_dict)        
+        
+        methane_inhibitor = st.slider('Methane inhibitor use in livestock feed',
+                        min_value=0, max_value=100, step=25,
+                        key='lf1', help=help["sidebar_livestock"][0],
+                        on_change=update_progress,
+                        kwargs=livestock_progress_dict)
+        
+        manure_management = st.slider('Manure management in livestock farming',
+                        min_value=0, max_value=100, step=25,
+                        key='lf2', help=help["sidebar_livestock"][1],
+                        on_change=update_progress,
+                        kwargs=livestock_progress_dict)
+        
+        animal_breeding = st.slider('Livestock breeding',
+                        min_value=0, max_value=100, step=25,
+                        key='lf3', help=help["sidebar_livestock"][2],
+                        on_change=update_progress,
+                        kwargs=livestock_progress_dict)
 
-        st.button("Reset", on_click=update_slider,
-                  kwargs={"values": [0,0,0,0,0,0],
-                          "keys": ['i1', 'i2', 'i3', 'i4', 'i5', 'i6']},
-                  key='reset_i')
+        st.button("Reset", on_click=reset_sliders, key='reset_livestock',
+            kwargs={"keys": [livestock_slider_keys, "livestock_bar"]})
 
-    # Policy interventions
-    #with st.expander("**:office: Policy interventions**"):
-    #    st.write('Policy intervention sliders to be shown here')
+    # Arable farming practices
+    st.slider("Arable farming practices", min_value=0., max_value=4., step=1.,
+              value=0., key="arable_bar", label_visibility="collapsed", format="%.1f")        
+
+    with st.expander("**:ear_of_rice: Arable farming practices**"):
+        arable_slider_keys = ["l5", "a1"]
+        arable_progress_dict = {"bar_key":"arable_bar",
+                                   "bar_values":arable_slider_keys}
+        
+        agroforestry = st.slider('Arable land % converted to agroforestry',
+                        min_value=0, max_value=100, step=1,
+                        key='l5', help=help["sidebar_land"][4],
+                        on_change=update_progress,
+                        kwargs=arable_progress_dict)
+
+        tillage = st.slider('Soil tillage reduction',
+                        min_value=0, max_value=100, step=25,
+                        key='a1', help=help["sidebar_arable"][0],
+                        on_change=update_progress,
+                        kwargs=arable_progress_dict)
+                        
+        st.button("Reset", on_click=reset_sliders, key='reset_arable',
+            kwargs={"keys": [arable_slider_keys, "arable_bar"]})
 
     with st.expander("Advanced settings"):
 
-        labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider')
-        rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250, key='rda_slider')
-        n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=50, value=20, step=5, key='timescale_slider')
-        max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
-        max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
-        bdleaf_conif_ratio = st.slider('Ratio of coniferous to broadleaved reforestation', min_value=0, max_value=100, value=50, step=10, key = "bdleaf_conif_ratio", help = help["advanced_options"][5])
-        bdleaf_seq_ha_yr = st.slider('Broadleaved forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.5, step=0.5, key = "bdleaf_seq_ha_yr", help = help["advanced_options"][6])
-        conif_seq_ha_yr = st.slider('Coniferous forest CO2 sequestration [t CO2 / ha / year]', min_value=15., max_value=30., value=23.5, step=0.5, key = "conif_seq_ha_yr", help = help["advanced_options"][7])
-        
-        domestic_use_source = st.radio("What source to prioritize for domestic use change",
-                                       ("Production", "Imports"),
-                                       horizontal=True,
-                                       index=0,
-                                       help=help["advanced_options"][8],
-                                       key='domestic_use_source')
-        
-        scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
-                                    ('g/cap/day', 'g_prot/cap/day', 'g_fat/cap/day', 'kCal/cap/day'),
-                                    horizontal=True,
-                                    index=3,
-                                    help=help["advanced_options"][9],
-                                    key='nutrient_constant')
-        
-        st.button("Reset", on_click=update_slider,
-                  kwargs={"values": [25, 2250, 20, 30, 30, 50, 12.5, 23.5, "Production", "kCal/cap/day"],
-                          "keys": ['labmeat_slider',
+        password = st.text_input("Enter the advanced settings password", type="password")
+        if password == st.secrets["advanced_options_password"]:
+
+            labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider')
+            rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250, key='rda_slider')
+            n_scale = st.slider('Adoption timescale [years]', min_value=0, max_value=50, value=20, step=5, key='timescale_slider')
+            max_ghge_animal = st.slider('Maximum animal production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_animal", help = help["advanced_options"][3])
+            max_ghge_plant = st.slider('Maximum plant production GHGE reduction due to innovation [%]', min_value=0, max_value=100, value=30, step=10, key = "max_ghg_plant", help = help["advanced_options"][4])
+            bdleaf_conif_ratio = st.slider('Ratio of coniferous to broadleaved reforestation', min_value=0, max_value=100, value=50, step=10, key = "bdleaf_conif_ratio", help = help["advanced_options"][5])
+            bdleaf_seq_ha_yr = st.slider('Broadleaved forest CO2 sequestration [t CO2 / ha / year]', min_value=7., max_value=15., value=12.5, step=0.5, key = "bdleaf_seq_ha_yr", help = help["advanced_options"][6])
+            conif_seq_ha_yr = st.slider('Coniferous forest CO2 sequestration [t CO2 / ha / year]', min_value=15., max_value=30., value=23.5, step=0.5, key = "conif_seq_ha_yr", help = help["advanced_options"][7])
+            elasticity = st.slider("Production / Imports elasticity ratio", min_value=0., max_value=1., value=1., step=0.1, key="elasticity", help = help["advanced_options"][9])
+            agroecology_tree_coverage = st.slider("Tree coverage in agroecology", min_value=0., max_value=1., value=0.1, step=0.1, key="tree_coverage")
+            
+            scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
+                                        ('g/cap/day', 'g_prot/cap/day', 'g_fat/cap/day', 'kCal/cap/day'),
+                                        horizontal=True,
+                                        index=3,
+                                        help=help["advanced_options"][9],
+                                        key='nutrient_constant')
+            
+            st.button("Reset", on_click=update_slider,
+                    kwargs={"values": [25, 2250, 20, 30, 30, 50, 12.5, 23.5, 0.1, "kCal/cap/day"],
+                            "keys": ['labmeat_slider',
                                      'rda_slider',
                                      'timescale_slider',
                                      'max_ghg_animal',
@@ -205,11 +273,27 @@ with st.sidebar:
                                      'bdleaf_conif_ratio',
                                      'bdleaf_seq_ha_yr',
                                      'conif_seq_ha_yr',
-                                     'domestic_use_source',
+                                     'tree_coverage',
                                      'nutrient_constant']},
-                  key='reset_a')
+                    key='reset_a')
 
+        else:
+            if password != "":
+                st.error("Incorrect password")
 
+            labmeat_co2e = value=25
+            rda_kcal = 2250
+            n_scale = 20
+            max_ghge_animal = 30
+            max_ghge_plant = 30
+            bdleaf_conif_ratio = 50
+            bdleaf_seq_ha_yr = 12.5
+            conif_seq_ha_yr = 23.5
+
+            elasticity = 1
+            agroecology_tree_coverage = 0.1
+            
+            scaling_nutrient = 'kCal/cap/day'            
 
     st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
     
@@ -219,7 +303,7 @@ with st.sidebar:
     st.markdown('''--- For a list of references to the datasets used, please
                 visit our [reference document](https://docs.google.com/spreadsheets/d/1XkOELCFKHTAywUGoJU6Mb0TjXESOv5BbR67j9UCMEgw/edit?usp=sharing).''')
 
-col1, col2 = st.columns((7,3))
+col1, col2 = st.columns((7.5,2.5))
 
 with col1:
     # ----------------------------------------
@@ -236,28 +320,50 @@ with col1:
     food_system.add_step(project_future,
                          {"scale":proj_pop})
     
-    food_system.add_step(ruminant_consumption_model,
-                         {"ruminant_scale":ruminant,
+    food_system.add_step(item_scaling,
+                         {"scale":1-ruminant/100,
                           "items":[2731, 2732],
-                          "source":domestic_use_source,
+                          "source":["production", "imports"],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
-    food_system.add_step(meat_consumption_model,
-                         {"meat_scale":meatfree,
-                          "extra_items":meatfree_extra_items,
-                          "source":domestic_use_source,
+    food_system.add_step(item_scaling,
+                         {"scale":1-pig_poultry_eggs/100,
+                          "items":[2733, 2734, 2949],
+                          "source":["production", "imports"],
+                          "elasticity":[elasticity, 1-elasticity],
+                          "scaling_nutrient":scaling_nutrient})
+    
+    food_system.add_step(item_scaling,
+                         {"scale":1-dairy/100,
+                          "items":[2740, 2743, 2948],
+                          "source":["production", "imports"],
+                          "elasticity":[elasticity, 1-elasticity],
+                          "scaling_nutrient":scaling_nutrient})
+    
+    food_system.add_step(item_scaling,
+                         {"scale":1+fruit_veg/100,
+                          "item_group":["Vegetables", "Fruits - Excluding Wine"],
+                          "source":["production", "imports"],
+                          "elasticity":[elasticity, 1-elasticity],
+                          "scaling_nutrient":scaling_nutrient})
+    
+    food_system.add_step(item_scaling,
+                         {"scale":1+cereals/100,
+                          "item_group":["Cereals - Excluding Beer"],
+                          "source":["production", "imports"],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(food_waste_model,
                          {"waste_scale":waste,
                           "kcal_rda":rda_kcal,
-                          "source":domestic_use_source})
+                          "source":"imports"})
 
     food_system.add_step(cultured_meat_model,
                          {"cultured_scale":labmeat/100,
                           "labmeat_co2e":labmeat_co2e,
-                          "extra_items":extra_items_cultured,
-                          "source":domestic_use_source})
+                          "source":"production"})
     
     # Land management
     food_system.add_step(spare_alc_model,
@@ -276,6 +382,24 @@ with col1:
                          {"forest_fraction":foresting_spared/100,
                           "bdleaf_conif_ratio":bdleaf_conif_ratio/100})
     
+    food_system.add_step(agroecology_model,
+                         {"land_percentage":silvopasture/100.,
+                          "agroecology_class":"Silvopasture",
+                          "land_type":["Improved grassland", "Semi-natural grassland"],
+                          "tree_coverage":agroecology_tree_coverage,
+                          "replaced_items":[2731, 2732],
+                          "new_items":2617,
+                          "item_yield":1e2})
+    
+    food_system.add_step(agroecology_model,
+                         {"land_percentage":agroforestry/100.,
+                          "agroecology_class":"Agroforestry",
+                          "land_type":["Arable"],
+                          "tree_coverage":agroecology_tree_coverage,
+                          "replaced_items":2511,
+                          "new_items":2617,
+                          "item_yield":1e2})
+    
     # Technology & Innovation
     food_system.add_step(BECCS_farm_land,
                          {"farm_percentage":land_BECCS/100})
@@ -286,12 +410,12 @@ with col1:
                           "DACCS":DACCS*1e6})
     
     food_system.add_step(scale_impact,
-                         {"item_origin":"Vegetal Products",
-                          "scale_factor":1 - max_ghge_plant*incr_GHGE_innovation_crop/400})
+                         {"items":[2731],
+                          "scale_factor":1 - methane_inhibitor/100})
     
     food_system.add_step(scale_impact,
-                         {"item_origin":"Animal Products",
-                         "scale_factor":1 - max_ghge_animal*incr_GHGE_innovation_meat/400})
+                         {"items":[2731],
+                          "scale_factor":1 - manure_management/100})
     
     # Compute emissions and sequestration
     food_system.add_step(forest_sequestration_model,
@@ -309,7 +433,11 @@ with col1:
     # -------------------
     from plots import plots
     metric_yr = plots(datablock)
-   
+
+    with bottom():
+        from bottom import bottom_panel
+        bottom_panel(datablock, metric_yr)
+
 with col2:
     # ---------------------
     # Execute Metrics block

@@ -1,38 +1,31 @@
 # FAIR wrapper, needed for caching
 import streamlit as st
-import fair
 import numpy as np
 
 # Helper Functions
 
-@st.cache_data
-def FAIR_run(emissions_gtco2e):
-    C, F, T = fair.forward.fair_scm(emissions_gtco2e, useMultigas=False)
-    return C, F, T
-
 # Updates the value of the sliders by setting the session state
 def update_slider(keys, values):
-    for key, value in zip(keys, values):
-        st.session_state[key] = value
-
-# # Initialize session state with sliders in initial positions to recover later
-# for key in ["d1", "d2", "d4", "d5", "l1", "l2", "l3", "l5", "l5", "i1", "i2", "i3", "i4", "i5"]:
-#     if key not in st.session_state:
-#         st.session_state[key] = 0
-
-# if 'd3' not in st.session_state:
-#         st.session_state['d3'] = []
+    if np.isscalar(values):
+        for key in keys:
+            st.session_state[key] = values
+    else:
+        for key, value in zip(keys, values):
+            st.session_state[key] = value
 
 default_widget_values = {
     # Consumer demand sliders and widgets
+    "consumer_bar": 0,
     "d1": 0,
     "d2": 0,
-    "d3": [],
+    "d3": 0,
     "d4": 0,
     "d5": 0,
-    "d6": [],
+    "d6": 0,
+    "d7": 0,
 
     # Land use sliders and widgets
+    "land_bar": 0,
     "l1": 0,
     "l2": 0,
     "l3": 0,
@@ -40,12 +33,22 @@ default_widget_values = {
     "l5": 0,
 
     # Technology and innovation sliders and widgets
+    "innovation_bar": 0,
     "i1": 0,
     "i2": 0,
     "i3": 0,
     "i4": 0,
     "i5": 0,
     "i6": 0,
+
+    # Livestock farming sliders and widgets
+    "livestock_bar": 0,
+    "lf1": 0,
+    "lf2": 0,
+
+    # Arable farming sliders and widgets
+    "arable_bar": 0,
+    "a1": 0,
 
     # Advanced settings sliders and widgets
     "labmeat_slider": 25,
@@ -57,19 +60,16 @@ default_widget_values = {
     "bdleaf_seq_ha_yr": 12.5,
     "conif_seq_ha_yr": 23.5,
     "nutrient_constant": "kCal/cap/day",
-    "domestic_use_source": "Production"    
+    "domestic_use_source": "production"
 }
 
-def reset_all_sliders():
-    for key in default_widget_values.keys():
-        update_slider(keys=[key], values=[default_widget_values[key]])
-
-# return a logistic function between the input ranges with given k, x0
-def logistic(n_scale, xmin=0, xmax=81):
-    k = [2**(1-n) for n in range(5)]
-    k[0] = 100
-    x0 = 10*(-0.01+np.arange(5))
-    return 1 / (1 + np.exp(-k[n_scale]*(np.arange(xmax-xmin) - x0[n_scale])))
+def reset_sliders(keys=None):
+    if keys is None:
+        for key in default_widget_values.keys():
+            update_slider(keys=[key], values=[default_widget_values[key]])
+    else:
+        keys = np.hstack(keys)
+        update_slider(keys=keys, values=[default_widget_values[key] for key in keys])
 
 # function to return the coordinate index of the maximum value along a dimension
 def map_max(map, dim):
@@ -90,3 +90,12 @@ def item_name_code(arr):
         return "Poultry"
     elif np.array_equal([2733], arr):
         return "Pigmeat"
+    
+def update_progress(bar_values, bar_key):
+    session_vals = [st.session_state[val] for val in bar_values]
+    st.session_state[bar_key] = 4 * sum(session_vals) / 100 / len(session_vals)
+
+def capitalize_first_character(s):
+    if len(s) == 0:
+        return s  # Return the empty string if input is empty
+    return s[0].upper() + s[1:]
