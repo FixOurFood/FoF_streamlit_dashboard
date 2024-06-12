@@ -38,7 +38,7 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ym
             # color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             color=alt.Color(f'{show}:N', scale=color_scale),
             # opacity=alt.condition(selection, alt.value(0.5), alt.value(0.8)),
-            tooltip=f'{show}:N'
+            tooltip=[f'{show}:N', 'Year', 'sum(value)',]
             ).add_params(selection).properties(height=550)
     
     return c

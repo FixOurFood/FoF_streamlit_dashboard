@@ -54,6 +54,7 @@ def bottom_panel(datablock, metric_yr):
             'color': ['black']
             })).mark_rule().encode(
             x='Self-sufficiency ratio:Q',
+            tooltip='Self-sufficiency ratio:Q',
             color=alt.Color('color:N', scale=None),
             strokeWidth=alt.value(4)
         )

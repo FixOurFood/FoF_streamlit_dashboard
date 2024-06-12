@@ -45,10 +45,14 @@ default_widget_values = {
     "livestock_bar": 0,
     "lf1": 0,
     "lf2": 0,
+    "lf3": 0,
+    "lf4": 0,
+    "lf5": 0,
 
     # Arable farming sliders and widgets
     "arable_bar": 0,
     "a1": 0,
+    "a2": 0,
 
     # Advanced settings sliders and widgets
     "labmeat_slider": 25,

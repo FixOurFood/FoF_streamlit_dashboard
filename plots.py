@@ -18,17 +18,21 @@ def plots(datablock):
     f, plot1 = plt.subplots(1, figsize=(7,7))
 
     # Add toggle to switch year horizon between 2050 and 2100
-    col_multiselect, _, col_but_metric_yr, _ = st.columns([12,1,2,1])
+    col_multiselect, col_but_metric_yr = st.columns([11.5,1.5])
 
     with col_multiselect:
         plot_key = st.selectbox("Figure to display", option_list)
 
     with col_but_metric_yr:
-        metric_yr = st.slider("Year mode",
-                              min_value=2050,
-                              max_value=2100,
-                              step=50,
-                              value=2050)
+        # metric_yr = st.slider("Year mode",
+        #                       min_value=2050,
+        #                       max_value=2100,
+        #                       step=50,
+        #                       value=2050)
+        st.write("")
+        st.write("")
+        metric_year_toggle = st.toggle("Switch to 2100 mode")
+        metric_yr = np.where(metric_year_toggle, 2100, 2050)
 
     # Emissions per food group or origin
     # ----------------------------------
@@ -54,7 +58,9 @@ def plots(datablock):
         emissions_sum = emissions["production"].sum(dim="Item")
         seqestration_sum = seq_da.sum(dim="Item")
 
-        f += plot_years_total((emissions_sum/1e6 - seqestration_sum), ylabel="t CO2e / Year")
+        f += plot_years_total((emissions_sum/1e6 - seqestration_sum),
+                              ylabel="t CO2e / Year",
+                              color="black")
 
         f=f.configure_axis(
             labelFontSize=15,
