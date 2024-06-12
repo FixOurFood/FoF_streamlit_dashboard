@@ -8,5 +8,6 @@ streamlit
 millify
 fair
 streamlit-modal
+streamlit-extras
 git+https://github.com/FixOurFood/AgriFoodPy.git
 git+https://github.com/FixOurFood/agrifoodpy-data.git@importable
