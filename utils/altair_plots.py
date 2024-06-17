@@ -117,15 +117,21 @@ def plot_land_altair(land):
 
     return c
 
-def plot_single_bar_altair(da, show="Item", x_axis_title=None):
+def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=None):
     df = da.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=da.name)
+
+    # Set yaxis limits
+    if xmax is None:
+        xmax = da.sum(dim=show).max().item()
+    if xmin is None:
+        xmin = np.min([da.sum(dim=show).min().item(), 0])
 
     c = alt.Chart(df).mark_bar().encode(
         x = alt.X('sum(value):Q',
                   title=x_axis_title,
                   axis=alt.Axis(labels=False),
-                  scale=alt.Scale(domain=(-2.8e8, 2.8e8))),
+                  scale=alt.Scale(domain=(xmin, xmax))),
         order=alt.Order(sort='descending'),
         # y = alt.Y('variable', title=None),
         color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),

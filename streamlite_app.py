@@ -49,12 +49,11 @@ with st.sidebar:
     col1, col2 = st.columns([7.5,2.5])
     with col1:
         st.selectbox("Scenario", scenarios_dict.keys(),
-                     help=help["sidebar_consumer"][8],
+                     help=help_str(help, "sidebar_consumer", 8),
                      on_change=call_scenarios, key="scenario")
 
     with col2:
-        st.button("Reset \n sliders", on_click=reset_sliders,
-                  key='reset_all')
+        st.button("Reset \n sliders", on_click=reset_sliders, key='reset_all')
 
     # Consumer demand interventions
 
@@ -65,35 +64,35 @@ with st.sidebar:
 
     with st.expander("**:spaghetti: Consumer demand**", expanded=False):
 
-        consumer_slider_keys = ["d1", "d2", "d3", "d4", "d5", "d6", "d7"]
+        consumer_slider_keys = ["ruminant", "dairy", "pig_poultry_eggs", "fruit_veg", "cereals", "waste", "labmeat"]
 
         ruminant = st.slider('Reduce ruminant meat consumption',
                         min_value=0, max_value=100, step=25,
-                        key="d1", help=help["sidebar_consumer"][1])
+                        key="ruminant", help=help_str(help, "sidebar_consumer", 1, "pjtbcox0lw1k"))
         
-        dairy = st.slider('[Reduce dairy consumption](https://docs.google.com/document/d/1A2J4BYIuXMgrj9tuLtIon8oJTuR1puK91bbUYCI8kHY/edit#heading=h.z0gjphyzstcl)',
+        dairy = st.slider('Reduce dairy consumption',
                         min_value=0, max_value=100, step=25,
-                        key="d2", help=help["sidebar_consumer"][2])
+                        key="dairy", help=help["sidebar_consumer"][2])
         
         pig_poultry_eggs = st.slider('Reduce pig, poultry and eggs consumption',
                         min_value=0, max_value=100, step=25,
-                        key="d3", help=help["sidebar_consumer"][3])
+                        key="pig_poultry_eggs", help=help["sidebar_consumer"][3])
         
         fruit_veg = st.slider('Increase fruit and vegetable consumption',
                         min_value=0, max_value=100, step=25,
-                        key="d4", help=help["sidebar_consumer"][4])
+                        key="fruit_veg", help=help["sidebar_consumer"][4])
         
         cereals = st.slider('Increase cereal consumption',
                         min_value=0, max_value=100, step=25,
-                        key="d5", help=help["sidebar_consumer"][5])
+                        key="cereals", help=help["sidebar_consumer"][5])
 
         waste = st.slider('Food waste and over-eating reduction',
                         min_value=0, max_value=100, step=25,
-                        key="d6", help=help["sidebar_consumer"][6])
+                        key="waste", help=help["sidebar_consumer"][6])
 
         labmeat = st.slider('Increase cultured meat uptake',
                         min_value=0, max_value=100, step=25,
-                        key="d7", help=help["sidebar_consumer"][7])       
+                        key="labmeat", help=help["sidebar_consumer"][7])       
 
         st.button("Reset", on_click=reset_sliders, key='reset_consumer',
                   kwargs={"keys": [consumer_slider_keys, "consumer_bar"]})
@@ -107,23 +106,23 @@ with st.sidebar:
 
     with st.expander("**:earth_africa: Land use change**"):
 
-        land_slider_keys = ["l1", "l2", "l3", "i3"]
+        land_slider_keys = ["pasture_sparing", "land_beccs", "arable_sparing", "foresting_spared"]
 
-        pasture_sparing = st.slider('Spared ALC 4 & 5 pasture land fraction',
+        pasture_sparing = st.slider('Spared pasture land fraction',
                         min_value=0, max_value=100, step=25,
-                        key='l1', help=help["sidebar_land"][0])        
+                        key="pasture_sparing", help=help["sidebar_land"][0])        
+
+        arable_sparing = st.slider('Spared arable land fraction',
+                        min_value=0, max_value=100, step=25,
+                        key="arable_sparing", help=help["sidebar_land"][1])
 
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
                         min_value=0, max_value=20, step=1,
-                        key='i3', help=help["sidebar_innovation"][2])
-
-        arable_sparing = st.slider('Spared ALC 4 & 5 arable land fraction',
-                        min_value=0, max_value=100, step=25,
-                        key='l2', help=help["sidebar_land"][1])
+                        key="land_beccs", help=help["sidebar_innovation"][2])
 
         foresting_spared = st.slider('Forested spared land fraction',
                         min_value=0, max_value=100, step=25,
-                        key='l3', help=help["sidebar_land"][2])
+                        key="foresting_spared", help=help["sidebar_land"][2])
         
         st.button("Reset", on_click=reset_sliders, key='reset_land',
                   kwargs={"keys":[land_slider_keys, "land_bar"]})
@@ -137,31 +136,31 @@ with st.sidebar:
     
     with st.expander("**:cow: Livestock farming practices**"):
 
-        livestock_slider_keys = ["l4", "lf1", "lf2", "lf3", "lf4", "lf5"]
+        livestock_slider_keys = ["silvopasture", "methane_inhibitor", "manure_management", "animal_breeding", "soil_carbon_management", "fossil_livestock"]
         
         silvopasture = st.slider('Pasture land % converted to silvopasture',
                         min_value=0, max_value=100, step=25,
-                        key='l4', help=help["sidebar_land"][3])        
+                        key='silvopasture', help=help["sidebar_land"][3])        
         
         methane_inhibitor = st.slider('Methane inhibitor use in livestock feed',
                         min_value=0, max_value=100, step=25,
-                        key='lf1', help=help["sidebar_livestock"][0])
+                        key='methane_inhibitor', help=help["sidebar_livestock"][0])
         
         manure_management = st.slider('Manure management in livestock farming',
                         min_value=0, max_value=100, step=25,
-                        key='lf2', help=help["sidebar_livestock"][1])
+                        key='manure_management', help=help["sidebar_livestock"][1])
         
         animal_breeding = st.slider('Livestock breeding',
                         min_value=0, max_value=100, step=25,
-                        key='lf3', help=help["sidebar_livestock"][2])
+                        key='animal_breeding', help=help["sidebar_livestock"][2])
         
         soil_carbon_management = st.slider('Soil and carbon management',
                         min_value=0, max_value=100, step=25,
-                        key='lf4', help=help["sidebar_livestock"][3])
+                        key='soil_carbon_management', help=help["sidebar_livestock"][3])
         
         fossil_livestock = st.slider('Fossil fuel use for heating, machinery',
                         min_value=0, max_value=100, step=25,
-                        key='lf5', help=help["sidebar_livestock"][4])        
+                        key='fossil_livestock', help=help["sidebar_livestock"][4])
         
 
         st.button("Reset", on_click=reset_sliders, key='reset_livestock',
@@ -176,19 +175,19 @@ with st.sidebar:
 
     with st.expander("**:ear_of_rice: Arable farming practices**"):
 
-        arable_slider_keys = ["l5", "a1", "a2"]
+        arable_slider_keys = ["agroforestry", "tillage", "fossil_arable"]
         
         agroforestry = st.slider('Arable land % converted to agroforestry',
                         min_value=0, max_value=100, step=1,
-                        key='l5', help=help["sidebar_land"][4])
+                        key='agroforestry', help=help["sidebar_land"][4])
 
         tillage = st.slider('Soil tillage reduction',
                         min_value=0, max_value=100, step=25,
-                        key='a1', help=help["sidebar_arable"][0])
+                        key='tillage', help=help["sidebar_arable"][0])
         
         fossil_arable = st.slider('Fossil fuel use for machinery',
                         min_value=0, max_value=100, step=25,
-                        key='a2', help=help["sidebar_arable"][1])    
+                        key='fossil_arable', help=help["sidebar_arable"][1])
                         
         st.button("Reset", on_click=reset_sliders, key='reset_arable',
             kwargs={"keys": [arable_slider_keys, "arable_bar"]})        
@@ -202,19 +201,19 @@ with st.sidebar:
     
     with st.expander("**:gear: Technology and innovation**"):
         
-        technology_slider_keys = ["i1", "i2", "i4"]
+        technology_slider_keys = ["waste_BECCS", "overseas_BECCS", "DACCS"]
 
         waste_BECCS = st.slider('BECCS sequestration from waste \n [Mt CO2e / yr]',
                         min_value=0, max_value=100, step=1,
-                        key='i1', help=help["sidebar_innovation"][0])
+                        key='waste_BECCS', help=help["sidebar_innovation"][0])
 
         overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
                         min_value=0, max_value=100, step=1,
-                        key='i2', help=help["sidebar_innovation"][1])
+                        key='overseas_BECCS', help=help["sidebar_innovation"][1])
 
         DACCS = st.slider('DACCS sequestration \n [Mt CO2e / yr]',
                         min_value=0, max_value=20, step=1,
-                        key='i4', help=help["sidebar_innovation"][3])
+                        key='DACCS', help=help["sidebar_innovation"][3])
 
         st.button("Reset", on_click=reset_sliders, key='reset_technology',
                   kwargs={"keys": [technology_slider_keys, "innovation_bar"]})
@@ -384,13 +383,13 @@ with col1:
     food_system.add_step(spare_alc_model,
                          {"spare_fraction":pasture_sparing/100,
                           "land_type":["Improved grassland", "Semi-natural grassland"],
-                          "alc_grades":[4,5],
+                        #   "alc_grades":[4,5],
                           "items":"Animal Products"})
     
     food_system.add_step(spare_alc_model,
                          {"spare_fraction":arable_sparing/100,
                           "land_type":["Arable"],
-                          "alc_grades":[4,5],
+                        #   "alc_grades":[4,5],
                           "items":"Vegetal Products"})
     
     food_system.add_step(foresting_spared_model,

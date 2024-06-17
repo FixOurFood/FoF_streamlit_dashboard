@@ -144,7 +144,12 @@ pop_world_past = pop.sel(Year=np.arange(1961,2021), Region=area_pop_world)
 # Land use data
 # -------------------------------
 
+# Make sure the land use data and ALC data have the same coordinate base
+
 LC = UKCEH_LC_1000["percentage_aggregate"]
 
-datablock["land"]["percentage_land_use"] = LC.where(np.isfinite(ALC.grade))
+ALC, LC = xr.align(ALC, LC, join="outer")
+
+# datablock["land"]["percentage_land_use"] = LC.where(np.isfinite(ALC.grade))
+datablock["land"]["percentage_land_use"] = LC
 datablock["land"]["dominant_classification"] = ALC.grade

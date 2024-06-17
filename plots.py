@@ -15,7 +15,7 @@ def plots(datablock):
     #                  Plots
     # ----------------------------------------
 
-    f, plot1 = plt.subplots(1, figsize=(7,7))
+    f, plot1 = plt.subplots(1, figsize=(8,8))
 
     # Add toggle to switch year horizon between 2050 and 2100
     col_multiselect, col_but_metric_yr = st.columns([11.5,1.5])
@@ -145,16 +145,19 @@ def plots(datablock):
             ALC_toplot.land.plot(ax=plot1)
 
         elif option_key == "Land use":
-            #             "broadl" "conif"  "arable"  "improv"  "semi-n"  "mount" "saltw" "freshw" "coast" "built" "spared", "silvo", "beccs"
-            color_list = ["green", "green", "yellow", "orange", "orange", "gray", "gray", "gray", "gray", "gray", "purple", "lightgreen", "lightblue", "red"]
-            label_list = ["Forest", "Forest", "Arable", "Pasture", "Pasture", "Mountain", "Water", "Water", "Water", "Non agricultural", "Spared", "Silvopasture", "Agroforestry", "BECCS"]
+            color_list = [land_color_dict[key] for key in pctg.aggregate_class.values]
+            label_list = [land_label_dict[key] for key in pctg.aggregate_class.values]
+
+            unique_index = np.unique(label_list, return_index=True)[1]
+
             cmap_tar = colors.ListedColormap(color_list)
             bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
             norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
 
             plot1.imshow(LC_toplot, interpolation="none", origin="lower",
                          cmap=cmap_tar, norm=norm_tar)
-            patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11,12,13]]
+            patches = [mpatches.Patch(color=color_list[i],
+                                      label=label_list[i]) for i in unique_index]
             plot1.legend(handles=patches, loc="upper left")
 
             left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
@@ -162,11 +165,12 @@ def plots(datablock):
             inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list)
     
         plot1.axis("off")
+        plot1.set_xlim(left=-500)
 
 
     # Output figure depending on type
     if isinstance(f, matplotlib.figure.Figure):
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
+        col2_1, col2_2, col2_3 = st.columns((2,3,2))
         with col2_2:
             st.pyplot(fig=f)
     

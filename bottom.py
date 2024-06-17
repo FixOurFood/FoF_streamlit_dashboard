@@ -24,8 +24,12 @@ def bottom_panel(datablock, metric_yr):
     # ----------------------------------------
     #               Bottom Panel
     # ----------------------------------------
-    botcol1, botcol2, boltcol3 = st.columns((1, 2, 1))
+    botcol1, botcol2, boltcol3 = st.columns((1, 1, 1))
     
+    # -----------
+    #     SSR
+    # -----------
+
     with botcol1:
         SSR = datablock["food"]["g/cap/day"].fbs.SSR()
 
@@ -63,13 +67,19 @@ def bottom_panel(datablock, metric_yr):
             with sc(key="container_with_border_2", css_styles=css_styles_1):
                 st.altair_chart(bars + ssr_line, use_container_width=True)
 
+    # ----------
+    #  Net zero
+    # ----------
+    
     with botcol2:
         emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
         emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
 
-        bars_emissions = plot_single_bar_altair(emissions, show="Item", x_axis_title="Net-zero meter")
-        bars_seq = plot_single_bar_altair(-seq_da, show="Item", x_axis_title="Net-zero meter")
+        bars_emissions = plot_single_bar_altair(emissions, show="Item", x_axis_title="Net-zero meter",
+                                          xmin=-3e8, xmax=3e8)
+        bars_seq = plot_single_bar_altair(-seq_da, show="Item", x_axis_title="Net-zero meter",
+                                          xmin=-3e8, xmax=3e8)
 
         zero_line = alt.Chart(pd.DataFrame({
             'Zero': 0,
@@ -100,8 +110,16 @@ def bottom_panel(datablock, metric_yr):
             with sc(key="container_with_border_1", css_styles=css_styles_1):
                 st.altair_chart(c, use_container_width=True)
 
+    # ----------
+    #  Land use
+    # ----------
+
     with boltcol3:
+
+        pctg = datablock["land"]["percentage_land_use"]
+        totals = pctg.sum(dim=["x", "y"])
+        bar_land_use = plot_single_bar_altair(totals, show="aggregate_class", x_axis_title="Land use")
+
         with sc(key="container_with_border", css_styles=css_styles):
             with sc(key="container_with_border_1", css_styles=css_styles_1):
-                pass
-
+                st.altair_chart(bar_land_use, use_container_width=True)
