@@ -7,7 +7,6 @@ altair
 streamlit
 millify
 fair
-streamlit-modal
-streamlit-extras
+streamlit-extras==0.4.3
 git+https://github.com/FixOurFood/AgriFoodPy.git
 git+https://github.com/FixOurFood/agrifoodpy-data.git@importable
