@@ -33,10 +33,26 @@ def project_future(datablock, scale):
     g_fat_cap_day = datablock["food"]["g_fat/cap/day"]
     kcal_cap_day = datablock["food"]["kCal/cap/day"]
 
+    years_past = g_cap_day.Year.values
+
     g_cap_day = g_cap_day.fbs.add_years(years, "constant")
     g_prot_cap_day = g_prot_cap_day.fbs.add_years(years, "constant")
     g_fat_cap_day = g_fat_cap_day.fbs.add_years(years, "constant")
     kcal_cap_day = kcal_cap_day.fbs.add_years(years, "constant")
+
+    # Scale food production
+    scale_past = xr.DataArray(np.ones(len(years_past)), dims=["Year"], coords={"Year": years_past})
+    scale_tot = xr.concat([scale_past, scale], dim="Year")
+
+    g_cap_day = g_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    g_prot_cap_day = g_prot_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    g_fat_cap_day = g_fat_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    kcal_cap_day = kcal_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+
+    g_cap_day = g_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    g_prot_cap_day = g_prot_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    g_fat_cap_day = g_fat_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    kcal_cap_day = kcal_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
 
     # Emissions per gram of food also remain constant
     g_co2e_g = datablock["impact"]["gco2e/gfood"]

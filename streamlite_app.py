@@ -136,7 +136,12 @@ with st.sidebar:
     
     with st.expander("**:cow: Livestock farming practices**"):
 
-        livestock_slider_keys = ["silvopasture", "methane_inhibitor", "manure_management", "animal_breeding", "soil_carbon_management", "fossil_livestock"]
+        livestock_slider_keys = ["silvopasture",
+                                 "methane_inhibitor",
+                                 "manure_management",
+                                 "animal_breeding",
+                                #  "soil_carbon_management",
+                                 "fossil_livestock"]
         
         silvopasture = st.slider('Pasture land % converted to silvopasture',
                         min_value=0, max_value=100, step=25,
@@ -154,9 +159,9 @@ with st.sidebar:
                         min_value=0, max_value=100, step=25,
                         key='animal_breeding', help=help["sidebar_livestock"][2])
         
-        soil_carbon_management = st.slider('Soil and carbon management',
-                        min_value=0, max_value=100, step=25,
-                        key='soil_carbon_management', help=help["sidebar_livestock"][3])
+        # soil_carbon_management = st.slider('Soil and carbon management',
+        #                 min_value=0, max_value=100, step=25,
+        #                 key='soil_carbon_management', help=help["sidebar_livestock"][3])
         
         fossil_livestock = st.slider('Fossil fuel use for heating, machinery',
                         min_value=0, max_value=100, step=25,
@@ -175,15 +180,17 @@ with st.sidebar:
 
     with st.expander("**:ear_of_rice: Arable farming practices**"):
 
-        arable_slider_keys = ["agroforestry", "tillage", "fossil_arable"]
+        arable_slider_keys = ["agroforestry",
+                            #   "tillage",
+                              "fossil_arable"]
         
         agroforestry = st.slider('Arable land % converted to agroforestry',
                         min_value=0, max_value=100, step=1,
                         key='agroforestry', help=help["sidebar_land"][4])
 
-        tillage = st.slider('Soil tillage reduction',
-                        min_value=0, max_value=100, step=25,
-                        key='tillage', help=help["sidebar_arable"][0])
+        # tillage = st.slider('Soil tillage reduction',
+        #                 min_value=0, max_value=100, step=25,
+        #                 key='tillage', help=help["sidebar_arable"][0])
         
         fossil_arable = st.slider('Fossil fuel use for machinery',
                         min_value=0, max_value=100, step=25,
@@ -236,8 +243,8 @@ with st.sidebar:
             elasticity = st.slider("Production / Imports elasticity ratio", min_value=0., max_value=1., value=1., step=0.1, key="elasticity", help = help["advanced_options"][9])
             agroecology_tree_coverage = st.slider("Tree coverage in agroecology", min_value=0., max_value=1., value=0.1, step=0.1, key="tree_coverage")
             
-            tillage_prod_factor = st.slider("Soil tillage production reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="tillage_prod")
-            tillage_ghg_factor = st.slider("Soil tillage GHG reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="tillage_ghg")
+            # tillage_prod_factor = st.slider("Soil tillage production reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="tillage_prod")
+            # tillage_ghg_factor = st.slider("Soil tillage GHG reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="tillage_ghg")
 
             manure_prod_factor = st.slider("Manure production reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="manure_prod")
             manure_ghg_factor = st.slider("Manure GHG reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="manure_ghg")
@@ -248,7 +255,7 @@ with st.sidebar:
             methane_prod_factor = st.slider("Methane inhibitors production reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="methane_prod")
             methane_ghg_factor = st.slider("Methane inhibitors GHG reduction", min_value=0., max_value=1., value=0.3, step=0.1, key="methane_ghg")
 
-            soil_management_ghg_factor = st.slider("Soil and carbon management GHG reduction", min_value=0., max_value=.2, value=0.05, step=0.01, key="soil_management_ghg")
+            # soil_management_ghg_factor = st.slider("Soil and carbon management GHG reduction", min_value=0., max_value=.2, value=0.05, step=0.01, key="soil_management_ghg")
 
             fossil_livestick_ghg_factor = st.slider("Livestock fossil fuel GHG reduction", min_value=0., max_value=.2, value=0.05, step=0.01, key="fossil_livestick_ghg")
             fossil_arable_ghg_factor = st.slider("Arable fossil fuel GHG reduction", min_value=0., max_value=.2, value=0.05, step=0.01, key="fossil_arable_ghg")
@@ -290,8 +297,8 @@ with st.sidebar:
             elasticity = 1
             agroecology_tree_coverage = 0.1
 
-            tillage_prod_factor = 0.3
-            tillage_ghg_factor = 0.3
+            # tillage_prod_factor = 0.3
+            # tillage_ghg_factor = 0.3
 
             manure_prod_factor = 0.3
             manure_ghg_factor = 0.3
@@ -302,19 +309,19 @@ with st.sidebar:
             methane_prod_factor = 0.3
             methane_ghg_factor = 0.3
 
-            soil_management_ghg_factor = 0.05
+            # soil_management_ghg_factor = 0.05
 
             fossil_livestick_ghg_factor = 0.05
             fossil_arable_ghg_factor = 0.05
             
             scaling_nutrient = 'kCal/cap/day'            
 
-    st.markdown('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
+    st.caption('''--- Developed with funding from [FixOurFood](https://fixourfood.org/).''')
     
-    st.markdown('''--- We would be grateful for your feedback, via
+    st.caption('''--- We would be grateful for your feedback, via
                 [this form](https://docs.google.com/forms/d/e/1FAIpQLSdnBp2Rmr-1fFYRQvEVcLLKchdlXZG4GakTBK5yy6jozUt8NQ/viewform?usp=sf_link).''')
     
-    st.markdown('''--- For a list of references to the datasets used, please
+    st.caption('''--- For a list of references to the datasets used, please
                 visit our [reference document](https://docs.google.com/spreadsheets/d/1XkOELCFKHTAywUGoJU6Mb0TjXESOv5BbR67j9UCMEgw/edit?usp=sharing).''')
 
 col1, = st.columns(1)
@@ -442,9 +449,9 @@ with col1:
                         "elasticity":[elasticity, 1-elasticity],
                         "scaling_nutrient":scaling_nutrient})    
     
-    food_system.add_step(scale_impact,
-                         {"items":[2731],
-                          "scale_factor":1 - soil_management_ghg_factor*soil_carbon_management/100})
+    # food_system.add_step(scale_impact,
+    #                      {"items":[2731],
+    #                       "scale_factor":1 - soil_management_ghg_factor*soil_carbon_management/100})
 
     # Arable farming practices
     food_system.add_step(agroecology_model,
@@ -456,16 +463,16 @@ with col1:
                           "new_items":2617,
                           "item_yield":1e2})
     
-    food_system.add_step(scale_impact,
-                         {"item_origin":"Vegetal Products",
-                          "scale_factor":1 - tillage_ghg_factor*tillage/100})
+    # food_system.add_step(scale_impact,
+    #                      {"item_origin":"Vegetal Products",
+    #                       "scale_factor":1 - tillage_ghg_factor*tillage/100})
     
-    food_system.add_step(item_scaling,
-                        {"scale":1-tillage_prod_factor*tillage/100,
-                        "item_group":"Vegetal Products",
-                        "source":["production", "imports"],
-                        "elasticity":[elasticity, 1-elasticity],
-                        "scaling_nutrient":scaling_nutrient})
+    # food_system.add_step(item_scaling,
+    #                     {"scale":1-tillage_prod_factor*tillage/100,
+    #                     "item_group":"Vegetal Products",
+    #                     "source":["production", "imports"],
+    #                     "elasticity":[elasticity, 1-elasticity],
+    #                     "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(scale_impact,
                          {"item_origin":"Vegetal Products",

@@ -3,6 +3,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import streamlit as st
+from glossary import *
 
 def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ymax=None):
 
@@ -38,7 +39,9 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ym
             # color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             color=alt.Color(f'{show}:N', scale=color_scale),
             # opacity=alt.condition(selection, alt.value(0.5), alt.value(0.8)),
-            tooltip=[f'{show}:N', 'Year', 'sum(value)',]
+            tooltip=[alt.Tooltip(f'{show}:N', title=show.replace("_", " ")),
+                     alt.Tooltip('Year'),
+                     alt.Tooltip('sum(value)', title='Total', format=".2f")],
             ).add_params(selection).properties(height=550)
     
     return c
@@ -135,7 +138,25 @@ def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=N
         order=alt.Order(sort='descending'),
         # y = alt.Y('variable', title=None),
         color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),
-        tooltip=show+':N',
+        tooltip=[alt.Tooltip(f'{show}:N'),
+                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
     ).properties(height=80)
+
+    return c
+
+def pie_chart_altair(da, show="Item"):
+    df = da.to_dataframe().reset_index().fillna(0)
+    df = df.melt(id_vars=show, value_vars=da.name)
+
+    c = alt.Chart(df).mark_arc().encode(
+        theta=alt.Theta("value:Q", sort=None),
+        color=alt.Color(show,
+                        sort=None,
+                        title="Land type",
+                        scale=alt.Scale(domain=list(land_color_dict.keys()),
+                                        range=list(land_color_dict.values()))),
+        tooltip=[alt.Tooltip(f'{show}:N', title="Type"),
+                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
+    ).resolve_scale(theta='independent')
 
     return c

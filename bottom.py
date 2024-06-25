@@ -66,6 +66,9 @@ def bottom_panel(datablock, metric_yr):
         with sc(key="container_with_border", css_styles=css_styles):
             with sc(key="container_with_border_2", css_styles=css_styles_1):
                 st.altair_chart(bars + ssr_line, use_container_width=True)
+                st.caption("""Self sufficiency ratio (SSR) is the ratio of the
+                           amount of food produced by a country to the amount of
+                           food it would need to meet its own food needs.""")
 
     # ----------
     #  Net zero
@@ -76,9 +79,9 @@ def bottom_panel(datablock, metric_yr):
         emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
 
-        bars_emissions = plot_single_bar_altair(emissions, show="Item", x_axis_title="Net-zero meter",
+        bars_emissions = plot_single_bar_altair(emissions, show="Item", x_axis_title="Emissions - Sequestration balance",
                                           xmin=-3e8, xmax=3e8)
-        bars_seq = plot_single_bar_altair(-seq_da, show="Item", x_axis_title="Net-zero meter",
+        bars_seq = plot_single_bar_altair(-seq_da, show="Item", x_axis_title="Emissions - Sequestration balance",
                                           xmin=-3e8, xmax=3e8)
 
         zero_line = alt.Chart(pd.DataFrame({
@@ -109,6 +112,8 @@ def bottom_panel(datablock, metric_yr):
         with sc(key="container_with_border", css_styles=css_styles):
             with sc(key="container_with_border_1", css_styles=css_styles_1):
                 st.altair_chart(c, use_container_width=True)
+                st.caption("""Balance between emissions from food production and
+                           agricultural, forestry and land use sequestration.""")
 
     # ----------
     #  Land use
@@ -123,3 +128,5 @@ def bottom_panel(datablock, metric_yr):
         with sc(key="container_with_border", css_styles=css_styles):
             with sc(key="container_with_border_1", css_styles=css_styles_1):
                 st.altair_chart(bar_land_use, use_container_width=True)
+                st.caption("""Distribution of land use in the UK. Different land uses
+                           provide sequestration, food production, or biodiversity.""")

@@ -5,8 +5,8 @@ import xarray as xr
 from agrifoodpy_data.food import FAOSTAT, Nutrients_FAOSTAT
 from agrifoodpy_data.impact import PN18_FAOSTAT
 from agrifoodpy_data.population import UN
-from agrifoodpy_data.land import ALC_1000 as ALC
-from agrifoodpy_data.land import UKCEH_LC_1000
+from agrifoodpy_data.land import NaturalEngland_ALC_1000 as ALC
+from agrifoodpy_data.land import UKCEH_LC_1000_gb
 
 from agrifoodpy.impact.model import fbs_impacts, fair_co2_only
 from utils.pipeline import Pipeline
@@ -39,8 +39,8 @@ pop = UN.Medium.sel(Region=[area_pop, area_pop_world], Year=years, Datatype="Tot
 # pop_past = pop_uk[pop_uk["Year"] < 2021]
 # pop_future = pop_uk[pop_uk["Year"] >= 2021]
 
-proj_pop = pop.sel(Region=area_pop_world, Year=np.arange(2021, 2101)) / \
-           pop.sel(Region=area_pop_world, Year=2020)
+proj_pop = pop.sel(Region=area_pop, Year=np.arange(2021, 2101)) / \
+           pop.sel(Region=area_pop, Year=2020)
 
 datablock["population"]["population"] = pop
 
@@ -146,7 +146,7 @@ pop_world_past = pop.sel(Year=np.arange(1961,2021), Region=area_pop_world)
 
 # Make sure the land use data and ALC data have the same coordinate base
 
-LC = UKCEH_LC_1000["percentage_aggregate"]
+LC = UKCEH_LC_1000_gb["percentage_aggregate"]
 
 ALC, LC = xr.align(ALC, LC, join="outer")
 
