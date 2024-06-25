@@ -16,39 +16,41 @@ def update_slider(keys, values):
 default_widget_values = {
     # Consumer demand sliders and widgets
     "consumer_bar": 0,
-    "d1": 0,
-    "d2": 0,
-    "d3": 0,
-    "d4": 0,
-    "d5": 0,
-    "d6": 0,
-    "d7": 0,
+    "ruminant": 0,
+    "dairy": 0,
+    "pig_poultry_eggs": 0,
+    "fruit_veg": 0,
+    "cereals": 0,
+    "waste": 0,
+    "labmeat": 0,
 
     # Land use sliders and widgets
     "land_bar": 0,
-    "l1": 0,
-    "l2": 0,
-    "l3": 0,
-    "l4": 0,
-    "l5": 0,
+    "pasture_sparing": 0,
+    "land_beccs": 0,
+    "arable_sparing": 0,
+    "foresting_spared": 0,
 
     # Technology and innovation sliders and widgets
     "innovation_bar": 0,
-    "i1": 0,
-    "i2": 0,
-    "i3": 0,
-    "i4": 0,
-    "i5": 0,
-    "i6": 0,
+    "waste_BECCS": 0,
+    "overseas_BECCS": 0,
+    "DACCS": 0,
 
     # Livestock farming sliders and widgets
     "livestock_bar": 0,
-    "lf1": 0,
-    "lf2": 0,
+    "silvopasture": 0,
+    "methane_inhibitor": 0,
+    "manure_management": 0,
+    "animal_breeding": 0,
+    "soil_carbon_management": 0,
+    "fossil_livestock": 0,
 
     # Arable farming sliders and widgets
     "arable_bar": 0,
-    "a1": 0,
+    "agroforestry": 0,
+    "tillage": 0,
+    "fossil_arable": 0,
 
     # Advanced settings sliders and widgets
     "labmeat_slider": 25,
@@ -99,3 +101,13 @@ def capitalize_first_character(s):
     if len(s) == 0:
         return s  # Return the empty string if input is empty
     return s[0].upper() + s[1:]
+
+
+def help_str(help, sidebar_key, row_index, heading_key=None):
+    doc_str = "https://docs.google.com/document/d/1A2J4BYIuXMgrj9tuLtIon8oJTuR1puK91bbUYCI8kHY/edit#heading=h."
+    help_string = help[sidebar_key][row_index]
+
+    if heading_key is not None:
+        help_string = f"[{help_string}]({doc_str}{heading_key})"
+
+    return help_string

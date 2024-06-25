@@ -15,31 +15,32 @@ def plots(datablock):
     #                  Plots
     # ----------------------------------------
 
-    f, plot1 = plt.subplots(1, figsize=(7,7))
+    f, plot1 = plt.subplots(1, figsize=(8,8))
 
     # Add toggle to switch year horizon between 2050 and 2100
-    col_multiselect, _, col_but_metric_yr, _ = st.columns([12,1,2,1])
+    col_multiselect, col_but_metric_yr = st.columns([11.5,1.5])
 
     with col_multiselect:
         plot_key = st.selectbox("Figure to display", option_list)
 
     with col_but_metric_yr:
-        metric_yr = st.slider("Year mode",
-                              min_value=2050,
-                              max_value=2100,
-                              step=50,
-                              value=2050)
+        st.write("")
+        st.write("")
+        metric_year_toggle = st.toggle("Switch to 2100 mode")
+        metric_yr = np.where(metric_year_toggle, 2100, 2050)
 
     # Emissions per food group or origin
     # ----------------------------------
     if plot_key == "CO2e emission per food group":
         emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
-        col_opt, col_element = st.columns([1,1])
+        col_opt, col_element, col_y = st.columns([1,1,1])
         with col_opt:
             option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
         with col_element:
-            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports"])
+            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed", ""])
+        with col_y:
+            y_key = st.selectbox("Food Supply Element", ["calories", "emissions", "weight"])
 
         # f = plot_years_total(emissions_baseline["food"].sum(dim="Item"), xlabel="Year")
 
@@ -51,10 +52,12 @@ def plots(datablock):
 
         # Plot sequestration
         f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
-        emissions_sum = emissions["production"].sum(dim="Item")
+        emissions_sum = emissions[element_key].sum(dim="Item")
         seqestration_sum = seq_da.sum(dim="Item")
 
-        f += plot_years_total((emissions_sum/1e6 - seqestration_sum), ylabel="t CO2e / Year")
+        f += plot_years_total((emissions_sum/1e6 - seqestration_sum),
+                              ylabel="t CO2e / Year",
+                              color="black")
 
         f=f.configure_axis(
             labelFontSize=15,
@@ -69,7 +72,7 @@ def plots(datablock):
         with col_opt:
             option_key = st.selectbox("Plot options", np.unique(emissions.Item_group.values))
         with col_element:
-            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports"])
+            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed"])
 
         # plot1.plot(emissions_baseline.Year.values,
         #            emissions_baseline["food"].sel(
@@ -126,44 +129,42 @@ def plots(datablock):
     # ----------------------------------------------
     elif plot_key == "Land":
 
-        col_opt1, col_opt2 = st.columns((1,1))
-        ALC_toplot = datablock["land"]["dominant_classification"]
         pctg = datablock["land"]["percentage_land_use"]
         LC_toplot = map_max(pctg, dim="aggregate_class")
 
-        with col_opt1:
-            land_options = ["Land use", "Agricultural Land Classification"]
-            option_key = st.selectbox("Plot options", land_options)
+        color_list = [land_color_dict[key] for key in pctg.aggregate_class.values]
+        label_list = [land_label_dict[key] for key in pctg.aggregate_class.values]
 
-        if option_key == "Agricultural Land Classification":
-            ALC_toplot.land.plot(ax=plot1)
+        unique_index = np.unique(label_list, return_index=True)[1]
 
-        elif option_key == "Land use":
-            #             "broadl" "conif"  "arable"  "improv"  "semi-n"  "mount" "saltw" "freshw" "coast" "built" "spared", "silvo", "beccs"
-            color_list = ["green", "green", "yellow", "orange", "orange", "gray", "gray", "gray", "gray", "gray", "purple", "lightgreen", "lightblue", "red"]
-            label_list = ["Forest", "Forest", "Arable", "Pasture", "Pasture", "Mountain", "Water", "Water", "Water", "Non agricultural", "Spared", "Silvopasture", "Agroforestry", "BECCS"]
-            cmap_tar = colors.ListedColormap(color_list)
-            bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
-            norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
+        cmap_tar = colors.ListedColormap(color_list)
+        bounds_tar = np.linspace(-0.5, len(color_list)-0.5, len(color_list)+1)
+        norm_tar = colors.BoundaryNorm(bounds_tar, cmap_tar.N)
 
-            plot1.imshow(LC_toplot, interpolation="none", origin="lower",
-                         cmap=cmap_tar, norm=norm_tar)
-            patches = [mpatches.Patch(color=color_list[i], label=label_list[i]) for i in [0,2,3,9,10,11,12,13]]
-            plot1.legend(handles=patches, loc="upper left")
+        plot1.imshow(LC_toplot, interpolation="none", origin="lower",
+                        cmap=cmap_tar, norm=norm_tar)
+        patches = [mpatches.Patch(color=color_list[i],
+                                    label=label_list[i]) for i in unique_index]
+        plot1.legend(handles=patches, loc="upper left")
 
-            left, bottom, width, height = [0.1, 0.3, 0.3, 0.3]
-            inset = f.add_axes([left, bottom, width, height])
-            inset.pie(pctg.sum(dim=["x", "y"]), colors=color_list)
-    
         plot1.axis("off")
+        plot1.set_xlim(left=-500)
 
 
     # Output figure depending on type
     if isinstance(f, matplotlib.figure.Figure):
-        col2_1, col2_2, col2_3 = st.columns((2,6,2))
-        with col2_2:
+        col2_1, col2_2, col2_3 = st.columns((3,2,2))
+        with col2_1:
             st.pyplot(fig=f)
-    
+        with col2_2:
+            land_pctg = pctg.sum(dim=["x", "y"])
+            pie = pie_chart_altair(land_pctg, show="aggregate_class")
+            st.altair_chart(pie)
+        # with col2_3:
+            # alc = datablock["land"]["dominant_classification"]
+            # alc_chart = plot_land_altair(alc)
+            # st.altair_chart(alc_chart)
+            
     else:
         st.altair_chart(f, use_container_width=True)
 

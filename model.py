@@ -33,10 +33,26 @@ def project_future(datablock, scale):
     g_fat_cap_day = datablock["food"]["g_fat/cap/day"]
     kcal_cap_day = datablock["food"]["kCal/cap/day"]
 
+    years_past = g_cap_day.Year.values
+
     g_cap_day = g_cap_day.fbs.add_years(years, "constant")
     g_prot_cap_day = g_prot_cap_day.fbs.add_years(years, "constant")
     g_fat_cap_day = g_fat_cap_day.fbs.add_years(years, "constant")
     kcal_cap_day = kcal_cap_day.fbs.add_years(years, "constant")
+
+    # Scale food production
+    scale_past = xr.DataArray(np.ones(len(years_past)), dims=["Year"], coords={"Year": years_past})
+    scale_tot = xr.concat([scale_past, scale], dim="Year")
+
+    g_cap_day = g_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    g_prot_cap_day = g_prot_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    g_fat_cap_day = g_fat_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+    kcal_cap_day = kcal_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
+
+    g_cap_day = g_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    g_prot_cap_day = g_prot_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    g_fat_cap_day = g_fat_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
+    kcal_cap_day = kcal_cap_day.fbs.scale_add(element_in="exports", element_out="imports", scale=1/scale_tot)
 
     # Emissions per gram of food also remain constant
     g_co2e_g = datablock["impact"]["gco2e/gfood"]
@@ -410,7 +426,7 @@ def compute_t_anomaly(datablock):
 
     return datablock
 
-def spare_alc_model(datablock, spare_fraction, land_type, alc_grades, items):
+def spare_alc_model(datablock, spare_fraction, land_type, items, alc_grades=None):
     """Replaces a specified land type fraction and sets it to a new type called
     'spared'. Scales food production and imports to reflect the change in land
     use.
@@ -421,13 +437,22 @@ def spare_alc_model(datablock, spare_fraction, land_type, alc_grades, items):
     pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
     old_use = datablock["land"]["percentage_land_use"].sel({"aggregate_class":land_type}).sum()
 
-    to_spare = pctg.where(np.isin(alc, alc_grades), other=0).sel({"aggregate_class":land_type})
+
+
+    # if no alc grade is provided, then use the whole map
+    if alc is not None:
+        alc_mask = np.isin(alc, alc_grades)
+    else:
+        alc_mask = np.ones_like(pctg, dtype=bool)
+
+    to_spare = pctg.where(alc_mask, other=0).sel({"aggregate_class":land_type})
+
     # Spare the specified land type
     delta_spared =  to_spare * spare_fraction
     pctg.loc[{"aggregate_class":land_type}] -= delta_spared
 
     if "Spared" not in pctg.aggregate_class.values:
-        spared_new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(alc))
+        spared_new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(pctg.isel(aggregate_class=0)))
         spared_new_class["aggregate_class"] = "Spared"
         pctg = xr.concat([pctg, spared_new_class], dim="aggregate_class")
 
@@ -731,7 +756,7 @@ def agroecology_model(datablock, land_percentage, land_type,
 
     # Add the agroecology percentage to the new agroecology class
     if agroecology_class not in pctg.aggregate_class.values:
-        new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(alc))
+        new_class = xr.zeros_like(pctg.isel(aggregate_class=0)).where(np.isfinite(pctg.isel(aggregate_class=0)))
         new_class["aggregate_class"] = agroecology_class
         pctg = xr.concat([pctg, new_class], dim="aggregate_class")
 
