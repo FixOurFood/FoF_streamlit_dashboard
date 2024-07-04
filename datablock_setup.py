@@ -5,8 +5,8 @@ import xarray as xr
 from agrifoodpy_data.food import FAOSTAT, Nutrients_FAOSTAT
 from agrifoodpy_data.impact import PN18_FAOSTAT
 from agrifoodpy_data.population import UN
-from agrifoodpy_data.land import ALC_1000 as ALC
-from agrifoodpy_data.land import UKCEH_LC_1000
+from agrifoodpy_data.land import NaturalEngland_ALC_1000 as ALC
+from agrifoodpy_data.land import UKCEH_LC_1000_gb
 
 from agrifoodpy.impact.model import fbs_impacts, fair_co2_only
 from pipeline import Pipeline
