@@ -3,6 +3,7 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 import streamlit as st
+from glossary import *
 
 def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ymax=None):
 
@@ -37,9 +38,11 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ym
             y=alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel, ), scale=alt.Scale(domain=[ymin, ymax])),
             # color=alt.Color(f'{show}:N', scale=alt.Scale(scheme='category20b')),
             color=alt.Color(f'{show}:N', scale=color_scale),
-            opacity=alt.condition(selection, alt.value(0.8), alt.value(0.2)),
-            tooltip=f'{show}:N'
-            ).add_params(selection).properties(height=600)
+            # opacity=alt.condition(selection, alt.value(0.5), alt.value(0.8)),
+            tooltip=[alt.Tooltip(f'{show}:N', title=show.replace("_", " ")),
+                     alt.Tooltip('Year'),
+                     alt.Tooltip('sum(value)', title='Total', format=".2f")],
+            ).add_params(selection).properties(height=550)
     
     return c
 
@@ -54,7 +57,7 @@ def plot_years_total(food, ylabel=None, sumdim=None, color="red"):
     c = alt.Chart(df).encode(
         alt.X('Year:O', axis=alt.Axis(values = np.linspace(1960, 2100, 8))),
         alt.Y('sum(value):Q', axis=alt.Axis(format="~s", title=ylabel))
-    ).mark_line(color=color)
+    ).mark_line(color=color).properties(height=550)
 
     return c
 
@@ -100,7 +103,7 @@ def plot_bars_altair(food, show="Item", x_axis_title='', xlimit=None):
         # color=alt.Color('Item'),
         color=alt.Color('Item', scale=alt.Scale(domain=["Animal Products", "Cultured Product", "Vegetal Products"], range=["red", "blue", "green"])),
         opacity=alt.condition(selection, alt.value(0.9), alt.value(0.5)),
-        tooltip='Item:N',
+        tooltip=['Item:N', 'value:Q'],
         ).add_params(selection).properties(height=500)
 
     return c
@@ -114,5 +117,46 @@ def plot_land_altair(land):
         color='value:Q',
         tooltip='value',
         ).properties(width=300, height=500)
+
+    return c
+
+def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=None):
+    df = da.to_dataframe().reset_index().fillna(0)
+    df = df.melt(id_vars=show, value_vars=da.name)
+
+    # Set yaxis limits
+    if xmax is None:
+        xmax = da.sum(dim=show).max().item()
+    if xmin is None:
+        xmin = np.min([da.sum(dim=show).min().item(), 0])
+
+    c = alt.Chart(df).mark_bar().encode(
+        x = alt.X('sum(value):Q',
+                  title=x_axis_title,
+                  axis=alt.Axis(labels=False),
+                  scale=alt.Scale(domain=(xmin, xmax))),
+        order=alt.Order(sort='descending'),
+        # y = alt.Y('variable', title=None),
+        color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),
+        tooltip=[alt.Tooltip(f'{show}:N'),
+                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
+    ).properties(height=80)
+
+    return c
+
+def pie_chart_altair(da, show="Item"):
+    df = da.to_dataframe().reset_index().fillna(0)
+    df = df.melt(id_vars=show, value_vars=da.name)
+
+    c = alt.Chart(df).mark_arc().encode(
+        theta=alt.Theta("value:Q", sort=None),
+        color=alt.Color(show,
+                        sort=None,
+                        title="Land type",
+                        scale=alt.Scale(domain=list(land_color_dict.keys()),
+                                        range=list(land_color_dict.values()))),
+        tooltip=[alt.Tooltip(f'{show}:N', title="Type"),
+                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
+    ).resolve_scale(theta='independent')
 
     return c

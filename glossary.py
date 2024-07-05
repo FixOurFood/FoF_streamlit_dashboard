@@ -91,3 +91,38 @@ x_axis_title = {"Weight":"g / cap / day",
                 "Fat":"g fat / cap / day",
                 "Proteins":"g protein / cap / day",
                 "Emissions":"g CO2e / cap / day", }
+
+land_color_dict = {
+    'Broadleaf woodland' : "green",
+    'Coniferous woodland' : "green",
+    'Arable' : "yellow",
+    'Improved grassland' : "orange",
+    'Semi-natural grassland' : "orange",
+    'Mountain, heath and bog' : "gray",
+    'Saltwater' : "gray",
+    'Freshwater' : "gray",
+    'Coastal' : "gray",
+    'Built-up areas and gardens' : "gray",
+    'Spared' : "purple",
+    'BECCS' : "red",
+    'Silvopasture' : "lightgreen",
+    'Agroforestry' : "lightblue",
+}
+
+land_label_dict = {
+    'Broadleaf woodland' : "Forest",
+    'Coniferous woodland' : "Forest",
+    'Arable' : "Arable",
+    'Improved grassland' : "Pasture",
+    'Semi-natural grassland' : "Pasture",
+    'Mountain, heath and bog' : "Mountain",
+    'Saltwater' : "Water",
+    'Freshwater' : "Water",
+    'Coastal' : "Water",
+    'Built-up areas and gardens' : "Non-agricultural",
+    'Spared' : "Spared",
+    'BECCS' : "BECCS",
+    'Silvopasture' : "Silvopasture",
+    'Agroforestry' : "Agroforestry",
+}
+
