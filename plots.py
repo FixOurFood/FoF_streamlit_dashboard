@@ -32,32 +32,40 @@ def plots(datablock):
     # Emissions per food group or origin
     # ----------------------------------
     if plot_key == "CO2e emission per food group":
-        emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
-        seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
         col_opt, col_element, col_y = st.columns([1,1,1])
         with col_opt:
             option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
         with col_element:
-            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed", ""])
+            element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed"])
         with col_y:
-            y_key = st.selectbox("Food Supply Element", ["calories", "emissions", "weight"])
+            y_key = st.selectbox("Food Supply Element", ["Emissions", "kCal/cap/day", "g/cap/day"])
 
-        # f = plot_years_total(emissions_baseline["food"].sum(dim="Item"), xlabel="Year")
+        if y_key == "Emissions":
+            emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
+            seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
 
-        if option_key == "Food origin":
-            f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel="t CO2e / Year")
+            if option_key == "Food origin":
+                f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel="t CO2e / Year")
 
-        elif option_key == "Food group":
-            f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel="t CO2e / Year")
+            elif option_key == "Food group":
+                f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel="t CO2e / Year")
 
-        # Plot sequestration
-        f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
-        emissions_sum = emissions[element_key].sum(dim="Item")
-        seqestration_sum = seq_da.sum(dim="Item")
+            # Plot sequestration
+            f += plot_years_altair(-seq_da, show="Item", ylabel="t CO2e / Year")
+            emissions_sum = emissions[element_key].sum(dim="Item")
+            seqestration_sum = seq_da.sum(dim="Item")
 
-        f += plot_years_total((emissions_sum/1e6 - seqestration_sum),
-                              ylabel="t CO2e / Year",
-                              color="black")
+            f += plot_years_total((emissions_sum/1e6 - seqestration_sum),
+                                ylabel="t CO2e / Year",
+                                color="black")
+        else:
+            emissions = datablock["food"][y_key].sel(Year=slice(None, metric_yr))
+
+            if option_key == "Food origin":
+                f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel=y_key)
+
+            elif option_key == "Food group":
+                f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel=y_key)
 
         f=f.configure_axis(
             labelFontSize=15,
