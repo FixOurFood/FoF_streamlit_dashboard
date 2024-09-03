@@ -56,11 +56,11 @@ datablock["food"]["1000 T/year"] = food_uk
 # ----------------
 # Emission factors
 # ----------------
-
 scale_ones = xr.DataArray(data = np.ones_like(food_uk.Year.values),
                           coords = {"Year":food_uk.Year.values})
-datablock["impact"]["gco2e/gfood"] = PN18_FAOSTAT["GHG Emissions"] * scale_ones
+extended_impact = PN18_FAOSTAT["GHG Emissions (IPCC 2013)"].drop_vars(["Item_name", "Item_group", "Item_origin"]) * scale_ones
 
+datablock["impact"]["gco2e/gfood"] = extended_impact
 
 # --------------------------
 # UK Per capita daily values

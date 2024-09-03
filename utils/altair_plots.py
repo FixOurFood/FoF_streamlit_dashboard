@@ -120,9 +120,12 @@ def plot_land_altair(land):
 
     return c
 
-def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=None):
+def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=None, unit=""):
     df = da.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=da.name)
+    
+    # Create a new column for the tooltip with units
+    df['value_with_unit'] = df['value'].apply(lambda x: f"{x:.3f} {unit}")
 
     # Set yaxis limits
     if xmax is None:
@@ -136,10 +139,9 @@ def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=N
                   axis=alt.Axis(labels=False),
                   scale=alt.Scale(domain=(xmin, xmax))),
         order=alt.Order(sort='descending'),
-        # y = alt.Y('variable', title=None),
         color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),
         tooltip=[alt.Tooltip(f'{show}:N'),
-                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
+                 alt.Tooltip('value_with_unit:N', title='Total')],
     ).properties(height=80)
 
     return c
