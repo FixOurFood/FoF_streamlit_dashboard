@@ -1,23 +1,8 @@
 import streamlit as st
 import altair as alt
 import matplotlib.pyplot as plt
-from streamlit_extras.stylable_container import stylable_container as sc
 from utils.altair_plots import *
 import pandas as pd
-
-css_styles = """
-    {
-        border: 1px solid rgba(49, 51, 63, 0.5);
-        border-radius: 0.5rem;
-        padding: 0.2em;
-    }
-    """
-
-css_styles_1 = """
-    {
-        padding: 0.05em;
-    }
-    """
 
 def bottom_panel(datablock, metric_yr):
 
@@ -63,65 +48,39 @@ def bottom_panel(datablock, metric_yr):
             strokeWidth=alt.value(4)
         )
 
-        with sc(key="container_with_border", css_styles=css_styles):
-            with sc(key="container_with_border_2", css_styles=css_styles_1):
-                bar1, bar2 = st.columns((10, 1))
-                with bar1:
-                    st.altair_chart(bars + ssr_line, use_container_width=True)
-                with bar2:
-                    st.text("")
-                    st.text("", help="""Self sufficiency ratio (SSR) is the ratio of the
-                           amount of food produced by a country to the amount of
-                           food it would need to meet its own food needs.""")
+        with st.container(border=True):
+            bar1, bar2 = st.columns((10, 1))
+            with bar1:
+                st.altair_chart(bars + ssr_line, use_container_width=True)
+            with bar2:
+                st.text("")
+                st.text("", help="""Self sufficiency ratio (SSR) is the ratio of the
+                        amount of food produced by a country to the amount of
+                        food it would need to meet its own food needs.""")
 
     # ----------
     #  Net zero
     # ----------
     
     with botcol2:
+
         emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
         emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
 
-        bars_emissions = plot_single_bar_altair(emissions, show="Item", x_axis_title="Emissions - Sequestration balance",
-                                          xmin=-3e8, xmax=3e8, unit="tCO2e")
-        bars_seq = plot_single_bar_altair(-seq_da, show="Item", x_axis_title="Emissions - Sequestration balance",
-                                          xmin=-3e8, xmax=3e8, unit="tCO2e")
+        c = plot_single_bar_altair(xr.concat([emissions, -seq_da], dim="Item"), show="Item",
+                                            axis_title="Emissions - Sequestration balance",
+                                            ax_min=-3e8, ax_max=3e8, unit="tCO2e", vertical=False,
+                                            mark_total=True, show_zero=True)
 
-        zero_line = alt.Chart(pd.DataFrame({
-            'Zero': 0,
-            'color': ['black']
-            })).mark_rule().encode(
-            x='Zero:Q',
-            tooltip='Zero:Q',
-            color=alt.Color('color:N', scale=None),
-            strokeWidth=alt.value(4)
-        )
-
-        total_emissions = (emissions.sum()-seq_da.sum()).to_numpy()
-
-        emissions_line = alt.Chart(pd.DataFrame({
-            'Total emissions': total_emissions,
-            'color': ['red']
-            })).mark_rule().encode(
-            x='Total emissions:Q',
-            tooltip='Total emissions:N',
-            color=alt.Color('color:N', scale=None),
-            strokeWidth=alt.value(4)
-        )
-
-        c = bars_emissions + bars_seq + zero_line + emissions_line
-
-        # Using double containers because single ones are covered by the chart
-        with sc(key="container_with_border", css_styles=css_styles):
-            with sc(key="container_with_border_1", css_styles=css_styles_1):
-                bar1, bar2 = st.columns((10, 1))
-                with bar1:
-                    st.altair_chart(c, use_container_width=True)
-                with bar2:
-                        st.text("")
-                        st.text("", help="""Balance between emissions from food production and
-                           agricultural, forestry and land use sequestration.""")
+        with st.container(border=True):
+            bar1, bar2 = st.columns((10, 1))
+            with bar1:
+                st.altair_chart(c, use_container_width=True)
+            with bar2:
+                    st.text("")
+                    st.text("", help="""Balance between emissions from food production and
+                        agricultural, forestry and land use sequestration.""")
 
     # ----------
     #  Land use
@@ -132,14 +91,14 @@ def bottom_panel(datablock, metric_yr):
         pctg = datablock["land"]["percentage_land_use"]
         totals = pctg.sum(dim=["x", "y"])
         bar_land_use = plot_single_bar_altair(totals, show="aggregate_class",
-                                              x_axis_title="Land use", unit="Hectares")
+                                              axis_title="Land use", unit="Hectares",
+                                              vertical=False)
 
-        with sc(key="container_with_border", css_styles=css_styles):
-            with sc(key="container_with_border_1", css_styles=css_styles_1):
-                bar1, bar2 = st.columns((10, 1))
-                with bar1:
-                    st.altair_chart(bar_land_use, use_container_width=True)
-                with bar2:
-                    st.text("")
-                    st.text("", help="""Distribution of land use in the UK. Different land uses
-                           provide sequestration, food production, or biodiversity.""")
+        with st.container(border=True):
+            bar1, bar2 = st.columns((10, 1))
+            with bar1:
+                st.altair_chart(bar_land_use, use_container_width=True)
+            with bar2:
+                st.text("")
+                st.text("", help="""Distribution of land use in the UK. Different land uses
+                        provide sequestration, food production, or biodiversity.""")

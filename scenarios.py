@@ -49,8 +49,21 @@ scenarios_dict={
         "agroforestry":     33, # of 2050 farmed land
         "silvopasture":     33, # of 2050 farmed land
         # missing forestation: half of currently farmed land
+    },
 
+    "AFN+: Build back fast again":{
 
+    },
+
+    "AFN+: Circular worlds":{
+
+    },
+
+    "AFN+: Self-sufficiency":{
+
+    },
+
+    "AFN+: The right to food":{
 
     },
 }

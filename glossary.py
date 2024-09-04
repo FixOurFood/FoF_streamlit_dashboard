@@ -70,15 +70,17 @@ vegetarian_diet_dict = {
     or Dairy products and eggs"""
 }
 
-option_list = ["CO2e emission per food group",
-               "CO2e emission per food item",
+option_list = ["Summary",
+               "Quantities per food group",
+               "Quantities per food item",
             #    "CO2 emissions per sector",
                # "CO2e concentration",
                # "Radiative forcing",
             #    "Temperature anomaly",
                "Per capita daily values",
                "Land",
-               "Self-sufficiency ratio"]
+               "Self-sufficiency ratio",
+               "Sectoral emissions"]
 
 FAOSTAT_percapita_items = ["Weight",
                            "Energy",
@@ -126,3 +128,18 @@ land_label_dict = {
     'Agroforestry' : "Agroforestry",
 }
 
+sector_emissions_dict = {
+    "Surface transport":0.87,
+    "Buildings":1.1,
+    "Manufacturing and construction":2.81,
+    "Electricity generation":1.2,
+    "Fuel supply":0.43,
+    "Agriculture":0,
+    "Land use sinks":0,
+    "Land use sources":19.79,
+    "Aviation":23.38,
+    "Shipping":0.89,
+    "Waste":7.83,
+    "F-gases":2.48,
+    "Removals":0
+}

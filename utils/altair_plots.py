@@ -5,6 +5,10 @@ import pandas as pd
 import streamlit as st
 from glossary import *
 
+import base64
+from io import BytesIO
+from PIL import Image
+
 def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ymax=None):
 
     # If no years are found in the dimensions, raise an exception
@@ -41,7 +45,7 @@ def plot_years_altair(food, show="Item", ylabel=None, colors=None, ymin=None, ym
             # opacity=alt.condition(selection, alt.value(0.5), alt.value(0.8)),
             tooltip=[alt.Tooltip(f'{show}:N', title=show.replace("_", " ")),
                      alt.Tooltip('Year'),
-                     alt.Tooltip('sum(value)', title='Total', format=".2f")],
+                     alt.Tooltip('sum(value)', title='Total' )],
             ).add_params(selection).properties(height=550)
     
     return c
@@ -120,29 +124,104 @@ def plot_land_altair(land):
 
     return c
 
-def plot_single_bar_altair(da, show="Item", x_axis_title=None, xmin=None, xmax=None, unit=""):
-    df = da.to_dataframe().reset_index().fillna(0)
-    df = df.melt(id_vars=show, value_vars=da.name)
+def plot_single_bar_altair(da, show="Item", axis_title=None,
+                                    ax_min=None, ax_max=None, unit="",
+                                    vertical=True, mark_total=False,
+                                    bar_width=80, show_zero=False,
+                                    ax_ticks=False):
+    
+    df_pos = da.where(da>0).to_dataframe().reset_index().fillna(0)
+    df_neg = da.where(da<0).to_dataframe().reset_index().fillna(0)
+
+    df_pos = df_pos.melt(id_vars=show, value_vars=da.name)
+    df_neg = df_neg.melt(id_vars=show, value_vars=da.name)
     
     # Create a new column for the tooltip with units
-    df['value_with_unit'] = df['value'].apply(lambda x: f"{x:.3f} {unit}")
+    df_pos['value_with_unit'] = df_pos['value'].apply(lambda x: f"{x:.2f} {unit}")
+    df_neg['value_with_unit'] = df_neg['value'].apply(lambda x: f"{x:.2f} {unit}")
 
     # Set yaxis limits
-    if xmax is None:
-        xmax = da.sum(dim=show).max().item()
-    if xmin is None:
-        xmin = np.min([da.sum(dim=show).min().item(), 0])
+    if ax_max is None:
+        ax_max = da.where(da>0).sum(dim=show).max().item()
+    if ax_min is None:
+        ax_min = np.min([da.where(da<0).sum(dim=show).min().item(), 0])
 
-    c = alt.Chart(df).mark_bar().encode(
-        x = alt.X('sum(value):Q',
-                  title=x_axis_title,
-                  axis=alt.Axis(labels=False),
-                  scale=alt.Scale(domain=(xmin, xmax))),
+    if vertical == True:
+        chart_params = {"y":alt.Y('sum(value):Q',
+                            title=axis_title,
+                            axis=alt.Axis(labels=ax_ticks),
+                            scale=alt.Scale(domain=(ax_min, ax_max))),
+                        "x":alt.X('variable', axis=alt.Axis(labels=False, title=None))}
+        icon_params = {"y": "total", "x": "variable"}
+    else:
+        chart_params = {"x":alt.X('sum(value):Q',
+                            title=axis_title,
+                            axis=alt.Axis(labels=ax_ticks),
+                            scale=alt.Scale(domain=(ax_min, ax_max))),
+                        "y":alt.Y('variable', axis=alt.Axis(labels=False, title=None))}
+        icon_params = {"x": "total", "y": "variable"}
+
+    # Plot positive values
+    c = alt.Chart(df_pos).mark_bar().encode(
+        **chart_params,
         order=alt.Order(sort='descending'),
         color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),
         tooltip=[alt.Tooltip(f'{show}:N'),
                  alt.Tooltip('value_with_unit:N', title='Total')],
-    ).properties(height=80)
+    )
+
+    # Plot negative values
+    c += alt.Chart(df_neg).mark_bar().encode(
+        **chart_params,
+        order=alt.Order(sort='descending'),
+        color=alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b')),
+        tooltip=[alt.Tooltip(f'{show}:N'),
+                 alt.Tooltip('value_with_unit:N', title='Total')],
+    )
+
+    # Add a marker for the total
+    if mark_total == True:
+
+        img_path = "images/rhomboid.png"
+        pil_image = Image.open(img_path)
+        output = BytesIO()
+        pil_image.save(output, format='PNG')
+
+        base64_img = "data:image/png;base64," + base64.b64encode(output.getvalue()).decode()
+
+        total = da.sum(dim=show).item()
+        source = pd.DataFrame.from_records([
+            {"variable": da.name, "total": total, "total_with_unit": f"{total:.2f} {unit}",
+            "img": base64_img},
+        ])        
+
+        c += alt.Chart(source).mark_image(
+            width=25,
+            height=25
+        ).encode(
+            **icon_params,
+            url='img',
+            tooltip=[alt.Tooltip('total_with_unit:N', title='Total')]
+        )
+    
+    # Add a line for zero
+    if show_zero == True:
+        zero_line_params = {"y": "value"} if vertical else {"x": "value"}
+        c += alt.Chart(pd.DataFrame({
+            'value': 0.,
+            'color': ['black']
+            })).mark_rule(
+                color="black",
+                thickness=2,
+            ).encode(
+                **zero_line_params
+        )
+
+    # Set bar width
+    if vertical:
+        c = c.properties(width=bar_width)
+    else:
+        c = c.properties(height=bar_width)
 
     return c
 
@@ -150,15 +229,33 @@ def pie_chart_altair(da, show="Item"):
     df = da.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=da.name)
 
+    print(df)
+
+    segment_order = ['Broadleaf woodland',
+                     'Coniferous woodland',
+                     'Arable',
+                     'Improved grassland',
+                     'Semi-natural grassland',
+                     'Mountain, heath and bog',
+                     'Saltwater',
+                     'Freshwater',
+                     'Coastal',
+                     'Built-up areas and gardens',
+                     'Spared',
+                     'BECCS',
+                     'Silvopasture',
+                     'Agroforestry',]
+
     c = alt.Chart(df).mark_arc().encode(
-        theta=alt.Theta("value:Q", sort=None),
-        color=alt.Color(show,
-                        sort=None,
+        theta=alt.Theta("value:Q"),
+        color=alt.Color(show+':N',
                         title="Land type",
-                        scale=alt.Scale(domain=list(land_color_dict.keys()),
-                                        range=list(land_color_dict.values()))),
+                        scale=alt.Scale(domain=segment_order,
+                                        range=list(land_color_dict.values()))
+                                        ),
         tooltip=[alt.Tooltip(f'{show}:N', title="Type"),
                  alt.Tooltip('sum(value)', title='Total', format=".2f")],
-    ).resolve_scale(theta='independent')
+        order=alt.Order('aggregate_class:N')
+    )
 
     return c

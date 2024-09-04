@@ -8,12 +8,9 @@ from agrifoodpy.food.food import FoodBalanceSheet
 from glossary import *
 from utils.helper_functions import *
 
+stage_I_deadline = 'December 31, 2024'
 
 def plots(datablock):
-
-    # ----------------------------------------    
-    #                  Plots
-    # ----------------------------------------
 
     f, plot1 = plt.subplots(1, figsize=(8,8))
 
@@ -28,19 +25,62 @@ def plots(datablock):
         st.write("")
         metric_year_toggle = st.toggle("Switch to 2100 mode")
         metric_yr = np.where(metric_year_toggle, 2100, 2050)
+    # ----------------------------------------    
+    #                  Plots
+    # ----------------------------------------
+
+    # Summary
+    # -------
+    if plot_key == "Summary":
+
+        col_text, col_comp_1, col_comp_2 = st.columns([1,1,1])
+        with col_text:
+            st.markdown(f'''Once you have selected the ambition levels for the
+                        different interventions, enter your unique ID on the
+                        field below and click the "Submit scenario" button. You can
+                        change your responses as many times as you want before
+                        the Stage I deadline on {stage_I_deadline}.''')
+
+            user_id = st.text_input("Enter your unique ID", "AFP")
+            submit_state = st.button("Submit scenario")
+
+            if submit_state:
+                st.success(f'Scenario submitted for user {user_id}', icon="✅")
+
+        with col_comp_1:
+            with st.container(height=50, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 50 pixels of height""")
+            with st.container(height=150, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 150 pixels of height""")
+            with st.container(height=250, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 250 pixels of height""")
+
+        with col_comp_2:
+            with st.container(height=100, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 100 pixels of height""")
+            with st.container(height=200, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 200 pixels of height""")
+            with st.container(height=300, border=True):
+                st.markdown("""Just testing stacking containers one after the other
+                            This one has 300 pixels of height""")
 
     # Emissions per food group or origin
     # ----------------------------------
-    if plot_key == "CO2e emission per food group":
+    elif plot_key == "Quantities per food group":
         col_opt, col_element, col_y = st.columns([1,1,1])
         with col_opt:
             option_key = st.selectbox("Plot options", ["Food group", "Food origin"])
         with col_element:
             element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed"])
         with col_y:
-            y_key = st.selectbox("Food Supply Element", ["Emissions", "kCal/cap/day", "g/cap/day"])
+            y_key = st.selectbox("Quantity", ["CO2e emissions", "kCal/cap/day", "g/cap/day"])
 
-        if y_key == "Emissions":
+        if y_key == "CO2e emissions":
             emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
             seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=slice(None, metric_yr))
 
@@ -62,36 +102,46 @@ def plots(datablock):
             emissions = datablock["food"][y_key].sel(Year=slice(None, metric_yr))
 
             if option_key == "Food origin":
-                f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel=y_key)
+                f = plot_years_altair(emissions[element_key], show="Item_origin", ylabel=y_key)
 
             elif option_key == "Food group":
-                f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel=y_key)
+                f = plot_years_altair(emissions[element_key], show="Item_group", ylabel=y_key)
 
         f=f.configure_axis(
             labelFontSize=15,
             titleFontSize=15)
+        
+        col2_1, col2_2, col2_3 = st.columns((1,4,1))
+        with col2_2:
+            st.altair_chart(f, use_container_width=True)
 
     # Emissions per food item from each group
     # ---------------------------------------
-    elif plot_key == "CO2e emission per food item":
+    elif plot_key == "Quantities per food item":
+        col_opt, col_element, col_y = st.columns([1,1,1])
         emissions = datablock["impact"]["g_co2e/year"].sel(Year=slice(None, metric_yr))
-        emissions_baseline = st.session_state["datablock_baseline"]["impact"]["g_co2e/year"]
-        col_opt, col_element = st.columns([1,1])
         with col_opt:
             option_key = st.selectbox("Plot options", np.unique(emissions.Item_group.values))
         with col_element:
             element_key = st.selectbox("Food Supply Element", ["production", "food", "imports", "exports", "feed"])
+        with col_y:
+            y_key = st.selectbox("Quantity", ["CO2e emissions", "kCal/cap/day", "g/cap/day"])
 
-        # plot1.plot(emissions_baseline.Year.values,
-        #            emissions_baseline["food"].sel(
-        #                Item=emissions_baseline["Item_group"] == option_key).sum(dim="Item"))
-        
-        to_plot = emissions[element_key].sel(Item=emissions["Item_group"] == option_key)/1e6
+        if y_key == "CO2e emissions":
+            to_plot = emissions[element_key].sel(Item=emissions["Item_group"] == option_key)/1e6
+
+        else:
+            to_plot = datablock["food"][y_key].sel(Year=slice(None, metric_yr))
+            to_plot = to_plot[element_key].sel(Item=to_plot["Item_group"] == option_key)
 
         f = plot_years_altair(to_plot, show="Item_name", ylabel="t CO2e / Year")
         f = f.configure_axis(
                 labelFontSize=15,
                 titleFontSize=15)
+        
+        col2_1, col2_2, col2_3 = st.columns((1,4,1))
+        with col2_2:
+            st.altair_chart(f, use_container_width=True)
         
 
     # FAOSTAT bar plot with per-capita daily values
@@ -119,6 +169,10 @@ def plots(datablock):
             x='Energy:Q',
             color=alt.Color('color:N', scale=None)
             )
+
+        col2_1, col2_2, col2_3 = st.columns((1,4,1))
+        with col2_2:
+            st.altair_chart(f, use_container_width=True)
         
         
     # Self-sufficiency ratio as a function of time
@@ -132,6 +186,10 @@ def plots(datablock):
         f = plot_years_total(SSR, ylabel="Self-sufficiency ratio [%]").configure_axis(
                 labelFontSize=20,
                 titleFontSize=20)
+        
+        col2_1, col2_2, col2_3 = st.columns((1,4,1))
+        with col2_2:
+            st.altair_chart(f, use_container_width=True)
 
     # Various land plots, including Land use and ALC
     # ----------------------------------------------
@@ -153,27 +211,54 @@ def plots(datablock):
                         cmap=cmap_tar, norm=norm_tar)
         patches = [mpatches.Patch(color=color_list[i],
                                     label=label_list[i]) for i in unique_index]
-        plot1.legend(handles=patches, loc="upper left")
+        # plot1.legend(handles=patches, loc="upper left")
 
         plot1.axis("off")
         plot1.set_xlim(left=-500)
 
-
-    # Output figure depending on type
-    if isinstance(f, matplotlib.figure.Figure):
         col2_1, col2_2, col2_3 = st.columns((3,2,2))
         with col2_1:
             st.pyplot(fig=f)
         with col2_2:
             land_pctg = pctg.sum(dim=["x", "y"])
             pie = pie_chart_altair(land_pctg, show="aggregate_class")
+
+            # source = pd.DataFrame({"category": [2, 1, 3, 4, 5, 6],
+            #                        "value": [4, 6, 10, 3, 7, 8]})
+
+            # pie = alt.Chart(source).mark_arc().encode(
+            #     theta=alt.Theta(field="value",
+            #                     type="quantitative", stack=True),
+
+            #     order=alt.Order(field="category", type="nominal"),
+            #     color=alt.Color(field="category", type="nominal"),
+            #     )
             st.altair_chart(pie)
-        # with col2_3:
-            # alc = datablock["land"]["dominant_classification"]
-            # alc_chart = plot_land_altair(alc)
-            # st.altair_chart(alc_chart)
-            
-    else:
-        st.altair_chart(f, use_container_width=True)
+
+    elif plot_key == "Sectoral emissions":
+
+        # Create dataarray with sectoral emissions for the different 
+        sectoral_emissions = xr.DataArray(data = list(sector_emissions_dict.values()),
+                                          name="Sectoral emissions",
+                                          coords={"Sector": list(sector_emissions_dict.keys())})
+
+        # Fill values for Agriculture, Land use sinks, and removals
+        emissions_ds = datablock["impact"]["g_co2e/year"].sel(Year=metric_yr)
+        total_emissions = emissions_ds["production"].sum(dim="Item").values/1e12
+        seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
+        total_seq = seq_da.sum(dim="Item").values/1e6
+
+        sectoral_emissions.loc[{"Sector": "Agriculture"}] = total_emissions
+        sectoral_emissions.loc[{"Sector": "Land use sinks"}] = -total_seq
+
+        f = plot_single_bar_altair(sectoral_emissions, show="Sector", axis_title="Mt CO2e / year",
+                                            unit="Mt CO2e / year", vertical=True,
+                                            mark_total=True, show_zero=True, ax_ticks=True)
+        
+        f = f.properties(height=600)
+        
+        col2_1, col2_2, col2_3 = st.columns((1,1,1))
+        with col2_1:
+            st.altair_chart(f, use_container_width=True)
 
     return metric_yr
