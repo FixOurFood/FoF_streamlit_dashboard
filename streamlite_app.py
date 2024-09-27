@@ -15,6 +15,8 @@ from scenarios import call_scenarios, scenarios_dict
 from datablock_setup import *
 from model import *
 
+from agrifoodpy.land import land
+
 if "datablock_baseline" not in st.session_state:
     st.session_state["datablock_baseline"] = datablock
 
@@ -117,7 +119,7 @@ with st.sidebar:
                         key="arable_sparing", help=help["sidebar_land"][1])
 
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
-                        min_value=0, max_value=20, step=1,
+                        min_value=0, max_value=20, step=5,
                         key="land_beccs", help=help["sidebar_innovation"][2])
 
         foresting_spared = st.slider('Forested spared land fraction',
@@ -185,7 +187,7 @@ with st.sidebar:
                               "fossil_arable"]
         
         agroforestry = st.slider('Arable land % converted to agroforestry',
-                        min_value=0, max_value=100, step=1,
+                        min_value=0, max_value=100, step=25,
                         key='agroforestry', help=help["sidebar_land"][4])
 
         # tillage = st.slider('Soil tillage reduction',
@@ -211,15 +213,15 @@ with st.sidebar:
         technology_slider_keys = ["waste_BECCS", "overseas_BECCS", "DACCS"]
 
         waste_BECCS = st.slider('BECCS sequestration from waste \n [Mt CO2e / yr]',
-                        min_value=0, max_value=100, step=1,
+                        min_value=0, max_value=100, step=25,
                         key='waste_BECCS', help=help["sidebar_innovation"][0])
 
         overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
-                        min_value=0, max_value=100, step=1,
+                        min_value=0, max_value=100, step=25,
                         key='overseas_BECCS', help=help["sidebar_innovation"][1])
 
         DACCS = st.slider('DACCS sequestration \n [Mt CO2e / yr]',
-                        min_value=0, max_value=20, step=1,
+                        min_value=0, max_value=20, step=5,
                         key='DACCS', help=help["sidebar_innovation"][3])
 
         st.button("Reset", on_click=reset_sliders, key='reset_technology',

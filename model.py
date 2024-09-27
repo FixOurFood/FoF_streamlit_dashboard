@@ -437,10 +437,8 @@ def spare_alc_model(datablock, spare_fraction, land_type, items, alc_grades=None
     pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
     old_use = datablock["land"]["percentage_land_use"].sel({"aggregate_class":land_type}).sum()
 
-
-
     # if no alc grade is provided, then use the whole map
-    if alc is not None:
+    if alc_grades is not None:
         alc_mask = np.isin(alc, alc_grades)
     else:
         alc_mask = np.ones_like(pctg, dtype=bool)
