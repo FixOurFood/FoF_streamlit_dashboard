@@ -7,6 +7,7 @@ from utils.altair_plots import *
 from agrifoodpy.food.food import FoodBalanceSheet
 from glossary import *
 from utils.helper_functions import *
+from consultation_utils import submit_scenario
 
 stage_I_deadline = 'December 31, 2024'
 
@@ -45,6 +46,7 @@ def plots(datablock):
             submit_state = st.button("Submit scenario")
 
             if submit_state:
+                submit_scenario(user_id, ambition_levels=True)
                 st.success(f'Scenario submitted for user {user_id}', icon="✅")
 
         with col_comp_1:

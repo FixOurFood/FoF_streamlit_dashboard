@@ -8,5 +8,6 @@ streamlit>=1.35.0
 millify
 fair
 streamlit-extras==0.4.3
+gspread
 git+https://github.com/FixOurFood/AgriFoodPy.git
 git+https://github.com/FixOurFood/agrifoodpy-data.git@importable
