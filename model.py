@@ -308,7 +308,7 @@ def food_waste_model(datablock, waste_scale, kcal_rda, source):
                                   scale=scale_waste)
     
     # Scale feed, seed and processing
-    out = feed_scale(out, food_orig)
+    # out = feed_scale(out, food_orig)
 
     # If supply element is negative, set to zero and add the negative delta to imports
     out = check_negative_source(out, source)
@@ -831,18 +831,26 @@ def agroecology_model(datablock, land_percentage, land_type,
 
     return datablock
 
-def feed_scale(fbs, reference):
+def feed_scale(fbs, ref):
     """Scales the feed, seed and processing quantities according to the change
     in production of animal and vegetal products"""
 
-    feed_scale = fbs["production"].sel(Item=fbs.Item_origin=="Animal Products").sum(dim="Item") \
-                / reference["production"].sel(Item=reference.Item_origin=="Animal Products").sum(dim="Item")
-
-    seed_scale = fbs["production"].sel(Item=fbs.Item_origin=="Vegetal Products").sum(dim="Item") \
-                / reference["production"].sel(Item=reference.Item_origin=="Vegetal Products").sum(dim="Item")
+    # Obtain reference production values
+    ref_feed_arr = ref["production"].sel(Item=ref.Item_origin=="Animal Products").sum(dim="Item")
+    ref_seed_arr = ref["production"].sel(Item=ref.Item_origin=="Vegetal Products").sum(dim="Item")
     
+    # Compute scaling factors for feed and seed based on proportional production
+    feed_scale = fbs["production"].sel(Item=fbs.Item_origin=="Animal Products").sum(dim="Item") \
+                / ref_feed_arr
+    seed_scale = fbs["production"].sel(Item=fbs.Item_origin=="Vegetal Products").sum(dim="Item") \
+                / ref_seed_arr
+
+    # Set feed_scale and seed_scale to 1 where ref arrays are close or equal to zero
+    feed_scale = xr.where(np.isclose(ref_feed_arr, 0), 1, feed_scale)
+    feed_scale = xr.where(np.isclose(ref_seed_arr, 0), 1, seed_scale)
+
     processing_scale = fbs["production"].sum(dim="Item") \
-                / reference["production"].sum(dim="Item")
+                / ref["production"].sum(dim="Item")
 
     out = fbs.fbs.scale_add(element_in="feed", element_out="production",
                             scale=feed_scale)
