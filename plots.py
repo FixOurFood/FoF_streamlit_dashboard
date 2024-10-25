@@ -8,7 +8,7 @@ from utils.altair_plots import *
 from agrifoodpy.food.food import FoodBalanceSheet
 from glossary import *
 from utils.helper_functions import *
-
+from consultation_utils import submit_scenario, stage_I_deadline
 
 def plots(datablock):
 
@@ -56,15 +56,21 @@ def plots(datablock):
                        the dropdown menu at the top of the page.
                        </div>''', unsafe_allow_html=True)
             st.write("")
-            st.caption('''<div style="text-align: justify;">
-                       The Agrifood Calculator predicts the effects of
-                       interventions by adjusting production, imports, exports
-                       and domestic use quantities of food products in the UK
-                       and the distribution of land use.
-                       Based on these changes, the model calculates the GHG
-                       emissions from food production and the carbon
-                       sequestration from different land uses.
+
+            st.caption(f'''<div style="text-align: justify;">
+                       Once you have selected the ambition levels for the
+                       different interventions, enter your unique ID on the
+                       field below and click the "Submit pathway" button. You
+                       can change your responses as many times as you want
+                       before the Stage I deadline on {stage_I_deadline}.
                        </div>''', unsafe_allow_html=True)
+
+            user_id = st.text_input("Enter your unique ID", "AFP")
+            submit_state = st.button("Submit pathway")
+
+            if submit_state:
+                submit_scenario(user_id, ambition_levels=True)
+                st.success(f'Scenario submitted for user {user_id}', icon="✅")
 
         with col_comp_1:
 
