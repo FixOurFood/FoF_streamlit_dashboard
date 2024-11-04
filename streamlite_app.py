@@ -196,6 +196,7 @@ with st.sidebar:
                                                  min_value=params["min_value"],
                                                  max_value=params["max_value"],
                                                  value=params["value"],
+                                                 step=params["step"],
                                                  key=params["key"])
 
             scaling_nutrient = st.radio("Which nutrient to keep constant when scaling food consumption",
