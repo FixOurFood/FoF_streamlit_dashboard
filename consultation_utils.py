@@ -24,8 +24,8 @@ def get_user_list():
     user_list = user_list[1:]
     return user_list
 
-
-def submit_scenario(user_id, ambition_levels=False):
+@st.dialog("Submit scenario")
+def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False):
     """Submit the pathway to the Google Sheet.
 
     Parameters:
@@ -42,40 +42,49 @@ def submit_scenario(user_id, ambition_levels=False):
     -------
         None
     """
+
     if not ambition_levels:
         row = [user_id, "test"]
         stage_I_worksheet.append_row(row)
         return
     
-    row = [user_id,
-           st.session_state["ruminant"],
-           st.session_state["dairy"],
-           st.session_state["pig_poultry_eggs"],
-           st.session_state["fruit_veg"],
-           st.session_state["cereals"],
-           st.session_state["waste"],
-           st.session_state["labmeat"],
-           
-           st.session_state["pasture_sparing"],
-           st.session_state["arable_sparing"],
-           st.session_state["land_beccs"],
-           st.session_state["foresting_spared"],
+    if user_id not in get_user_list():
+        st.error(f'User ID {user_id} not found in database', icon="🚨")
+    
+    else:
+        row = [user_id,
+            st.session_state["ruminant"],
+            st.session_state["dairy"],
+            st.session_state["pig_poultry_eggs"],
+            st.session_state["fruit_veg"],
+            st.session_state["cereals"],
+            st.session_state["waste"],
+            st.session_state["labmeat"],
+            
+            st.session_state["pasture_sparing"],
+            st.session_state["arable_sparing"],
+            st.session_state["land_beccs"],
+            st.session_state["foresting_spared"],
 
-           st.session_state["silvopasture"],
-           st.session_state["methane_inhibitor"],
-           st.session_state["manure_management"],
-           st.session_state["animal_breeding"],
-           st.session_state["fossil_livestock"],
+            st.session_state["silvopasture"],
+            st.session_state["methane_inhibitor"],
+            st.session_state["manure_management"],
+            st.session_state["animal_breeding"],
+            st.session_state["fossil_livestock"],
 
-           st.session_state["agroforestry"],
-           st.session_state["fossil_arable"],
+            st.session_state["agroforestry"],
+            st.session_state["fossil_arable"],
 
-           st.session_state["waste_BECCS"],
-           st.session_state["overseas_BECCS"],
-           st.session_state["DACCS"],
-    ]
+            st.session_state["waste_BECCS"],
+            st.session_state["overseas_BECCS"],
+            st.session_state["DACCS"],
+            
+            '{0:.2f}'.format(SSR),
+            '{0:.2f}'.format(total_emissions)
+        ]
 
-    stage_I_worksheet.append_row(row)
+        stage_I_worksheet.append_row(row)
+        st.success(f'Scenario submitted for user {user_id}', icon="✅")
 
 def get_pathways():
     """Get the pathways names from the Google Sheet"""

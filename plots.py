@@ -68,13 +68,6 @@ def plots(datablock):
             user_id = st.text_input("Enter your unique ID", "AFP")
             submit_state = st.button("Submit pathway")
 
-            if submit_state:
-                if user_id not in get_user_list():
-                    st.error(f'User ID {user_id} not found in database', icon="🚨")
-                else:
-                    submit_scenario(user_id, ambition_levels=True)
-                    st.success(f'Scenario submitted for user {user_id}', icon="✅")
-
         with col_comp_1:
 
             with st.container(height=750, border=True):
@@ -121,11 +114,6 @@ def plots(datablock):
                 st.metric(label="SSR", value="{:.2f} %".format(100*SSR_metric_yr),
                     delta="{:.2f} %".format(100*(SSR_metric_yr-SSR_ref)))
                 
-                SSR = datablock["food"]["g/cap/day"].fbs.SSR()
-
-                SSR_metric_yr = SSR.sel(Year=metric_yr).to_numpy()
-                SSR_ref = SSR.sel(Year=2020).to_numpy()
-
                 df = pd.DataFrame({"Item":["Low", "Mid", "High"],
                                 "variable":["SSR", "SSR", "SSR"],
                                 "value":[SSR_ref, 1-SSR_ref, 0.2]})
@@ -391,3 +379,9 @@ def plots(datablock):
         with bottom():
             from bottom import bottom_panel
             bottom_panel(datablock, metric_yr)
+
+    if submit_state:
+        total_emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr).sum().values/1e12
+        total_sequestration = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr).sum().values/1e6
+        SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=metric_yr).to_numpy()
+        submit_scenario(user_id, SSR, total_emissions-total_sequestration, ambition_levels=True)
