@@ -654,6 +654,47 @@ def scale_impact(datablock, scale_factor, item_origin=None, items=None):
 
     return datablock
 
+def scale_production(datablock, scale_factor, item_origin=None, items=None):
+    """ Scales the production values for the selected items by multiplying them by
+    a multiplicative factor.
+    """
+
+    timescale = datablock["global_parameters"]["timescale"]
+
+    # load quantities and impacts
+    food_orig = datablock["food"]["g/cap/day"].copy(deep=True)
+
+    # if no items are specified, do nothing
+    if items is None and item_origin is None:
+        return datablock
+    else:
+        # if items are specified, select the items to scale
+        # we prioritise items over item_origin
+        if items is not None:
+            pass
+        # if item_origin is specified, select the items to scale
+        elif item_origin is not None:
+            items = food_orig.sel(Item = food_orig.Item_origin==item_origin).Item.values
+
+    scale_prod = logistic_food_supply(food_orig, timescale, 1, scale_factor)
+
+    out = food_orig.fbs.scale_add(element_in="production",
+                                element_out="imports",
+                                scale=scale_prod,
+                                items=items,
+                                add=False)
+    
+    ratio = out / food_orig
+    ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Update per cap/day values and per year values using the same ratio, which
+    # is independent of population growth
+    qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
+    for key in qty_key:
+        datablock["food"][key] *= ratio
+
+    return datablock
+
 def BECCS_farm_land(datablock, farm_percentage):
     """Repurposes farm land for BECCS, reducing the amount of food production,
     and increasing the amount of CO2e sequestered.
