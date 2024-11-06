@@ -8,7 +8,7 @@ from utils.altair_plots import *
 from agrifoodpy.food.food import FoodBalanceSheet
 from glossary import *
 from utils.helper_functions import *
-from consultation_utils import submit_scenario, stage_I_deadline
+from consultation_utils import submit_scenario, get_user_list, stage_I_deadline
 
 def plots(datablock):
 
@@ -69,8 +69,11 @@ def plots(datablock):
             submit_state = st.button("Submit pathway")
 
             if submit_state:
-                submit_scenario(user_id, ambition_levels=True)
-                st.success(f'Scenario submitted for user {user_id}', icon="✅")
+                if user_id not in get_user_list():
+                    st.error(f'User ID {user_id} not found in database', icon="🚨")
+                else:
+                    submit_scenario(user_id, ambition_levels=True)
+                    st.success(f'Scenario submitted for user {user_id}', icon="✅")
 
         with col_comp_1:
 

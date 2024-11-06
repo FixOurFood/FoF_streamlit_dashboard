@@ -10,7 +10,8 @@ from utils.altair_plots import *
 from utils.helper_functions import *
 
 from glossary import *
-from scenarios import call_scenarios, scenarios_dict
+# from scenarios import call_scenarios, scenarios_dict
+from consultation_utils import get_pathways, call_scenarios
 
 from datablock_setup import *
 from model import *
@@ -42,7 +43,7 @@ with st.sidebar:
 
     col1, col2 = st.columns([7.5,2.5])
     with col1:
-        st.selectbox("Scenario", scenarios_dict.keys(),
+        st.selectbox("Scenario", get_pathways(),
                      help=help_str(help, "sidebar_consumer", 8),
                      on_change=call_scenarios, key="scenario")
 
@@ -68,7 +69,7 @@ with st.sidebar:
                         key="pig_poultry_eggs", help=help["sidebar_consumer"][3])
         
         fruit_veg = st.slider('Increase fruit and vegetable consumption',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=300, step=25,
                         key="fruit_veg", help=help["sidebar_consumer"][4])
         
         cereals = st.slider('Increase cereal consumption',
