@@ -68,6 +68,12 @@ def plots(datablock):
             user_id = st.text_input("Enter your unique ID", "AFP")
             submit_state = st.button("Submit pathway")
 
+            if submit_state:
+                total_emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr).sum().values/1e12
+                total_sequestration = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr).sum().values/1e6
+                SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=metric_yr).to_numpy()
+                submit_scenario(user_id, SSR, total_emissions-total_sequestration, ambition_levels=True)
+
         with col_comp_1:
 
             with st.container(height=750, border=True):
@@ -380,8 +386,4 @@ def plots(datablock):
             from bottom import bottom_panel
             bottom_panel(datablock, metric_yr)
 
-    if submit_state:
-        total_emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr).sum().values/1e12
-        total_sequestration = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr).sum().values/1e6
-        SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=metric_yr).to_numpy()
-        submit_scenario(user_id, SSR, total_emissions-total_sequestration, ambition_levels=True)
+

@@ -312,45 +312,45 @@ with col1:
                          {"scale":1-ruminant/100,
                           "items":[2731, 2732],
                           "source":["production", "imports"],
-                          "elasticity":[advs["elasticity"]["value"], 1-advs["elasticity"]["value"]],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(item_scaling,
                          {"scale":1-pig_poultry_eggs/100,
                           "items":[2733, 2734, 2949],
                           "source":["production", "imports"],
-                          "elasticity":[advs["elasticity"]["value"], 1-advs["elasticity"]["value"]],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(item_scaling,
                          {"scale":1-dairy/100,
                           "items":[2740, 2743, 2948],
                           "source":["production", "imports"],
-                          "elasticity":[advs["elasticity"]["value"], 1-advs["elasticity"]["value"]],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(item_scaling,
                          {"scale":1+fruit_veg/100,
                           "item_group":["Vegetables", "Fruits - Excluding Wine"],
                           "source":["production", "imports"],
-                          "elasticity":[advs["elasticity"]["value"], 1-advs["elasticity"]["value"]],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(item_scaling,
                          {"scale":1+cereals/100,
                           "item_group":["Cereals - Excluding Beer"],
                           "source":["production", "imports"],
-                          "elasticity":[advs["elasticity"]["value"], 1-advs["elasticity"]["value"]],
+                          "elasticity":[elasticity, 1-elasticity],
                           "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(food_waste_model,
                          {"waste_scale":waste,
-                          "kcal_rda":advs["rda_kcal"]["value"],
+                          "kcal_rda":rda_kcal,
                           "source":"imports"})
 
     food_system.add_step(cultured_meat_model,
                          {"cultured_scale":labmeat/100,
-                          "labmeat_co2e":advs["labmeat_co2e"]["value"],
+                          "labmeat_co2e":labmeat_co2e,
                           "source":"production"})
     
     # Land management
@@ -366,7 +366,7 @@ with col1:
     
     food_system.add_step(foresting_spared_model,
                          {"forest_fraction":foresting_spared/100,
-                          "bdleaf_conif_ratio":advs["bdleaf_conif_ratio"]["value"]/100})
+                          "bdleaf_conif_ratio":bdleaf_conif_ratio/100})
     
     food_system.add_step(BECCS_farm_land,
                          {"farm_percentage":land_BECCS/100})
@@ -376,33 +376,33 @@ with col1:
                          {"land_percentage":silvopasture/100.,
                           "agroecology_class":"Silvopasture",
                           "land_type":["Improved grassland", "Semi-natural grassland"],
-                          "tree_coverage":advs["agroecology_tree_coverage"]["value"],
+                          "tree_coverage":agroecology_tree_coverage,
                           "replaced_items":[2731, 2732],
                           "new_items":2617,
                           "item_yield":1e2})
     
     food_system.add_step(scale_impact,
                          {"items":[2731, 2732],
-                          "scale_factor":1 - advs["methane_ghg_factor"]["value"]*methane_inhibitor/100})
+                          "scale_factor":1 - methane_ghg_factor*methane_inhibitor/100})
     
     food_system.add_step(scale_production,
-                         {"scale_factor":1-advs["methane_prod_factor"]["value"]*methane_inhibitor/100,
+                         {"scale_factor":1-methane_prod_factor*methane_inhibitor/100,
                           "items":[2731, 2732]})
     
     food_system.add_step(scale_impact,
                          {"items":[2731, 2732],
-                          "scale_factor":1 - advs["manure_ghg_factor"]["value"]*manure_management/100})
+                          "scale_factor":1 - manure_ghg_factor*manure_management/100})
     
     food_system.add_step(scale_production,
-                         {"scale_factor":1-advs["manure_prod_factor"]["value"]*manure_management/100,
+                         {"scale_factor":1-manure_prod_factor*manure_management/100,
                           "items":[2731, 2732]})
     
     food_system.add_step(scale_impact,
                          {"items":[2731, 2732],
-                          "scale_factor":1 - advs["breeding_ghg_factor"]["value"]*animal_breeding/100})
+                          "scale_factor":1 - breeding_ghg_factor*animal_breeding/100})
     
     food_system.add_step(scale_production,
-                         {"scale_factor":1-advs["breeding_prod_factor"]["value"]*animal_breeding/100,
+                         {"scale_factor":1-breeding_prod_factor*animal_breeding/100,
                           "items":[2731, 2732]})
 
     # Arable farming practices
@@ -410,17 +410,17 @@ with col1:
                          {"land_percentage":agroforestry/100.,
                           "agroecology_class":"Agroforestry",
                           "land_type":["Arable"],
-                          "tree_coverage":advs["agroecology_tree_coverage"]["value"],
+                          "tree_coverage":agroecology_tree_coverage,
                           "replaced_items":2511,
                           "new_items":2617,
                           "item_yield":1e2})
     
     food_system.add_step(scale_impact,
                          {"item_origin":"Vegetal Products",
-                          "scale_factor":1 - advs["fossil_arable_ghg_factor"]["value"]*fossil_arable/100})
+                          "scale_factor":1 - fossil_arable_ghg_factor*fossil_arable/100})
     
     food_system.add_step(scale_production,
-                         {"scale_factor":1 - advs["fossil_arable_prod_factor"]["value"]*fossil_arable/100,
+                         {"scale_factor":1 - fossil_arable_prod_factor*fossil_arable/100,
                           "item_origin":"Vegetal Products"})
     
     # Technology & Innovation    
@@ -432,8 +432,8 @@ with col1:
     
     # Compute emissions and sequestration
     food_system.add_step(forest_sequestration_model,
-                         {"seq_broadleaf_ha_yr":advs["bdleaf_seq_ha_yr"]["value"],
-                          "seq_coniferous_ha_yr":advs["conif_seq_ha_yr"]["value"]})
+                         {"seq_broadleaf_ha_yr":bdleaf_seq_ha_yr,
+                          "seq_coniferous_ha_yr":conif_seq_ha_yr})
 
     food_system.add_step(compute_emissions)
 
