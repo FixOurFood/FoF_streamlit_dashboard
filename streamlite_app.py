@@ -377,7 +377,7 @@ with col1:
                           "source":["production", "imports"],
                           "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
                           "scaling_nutrient":scaling_nutrient,
-                          "constant":cereal_scaling,
+                          "constant":st.session_state.cereal_scaling,
                           "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
@@ -386,7 +386,7 @@ with col1:
                           "source":["production", "imports"],
                           "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
                           "scaling_nutrient":scaling_nutrient,
-                          "constant":cereal_scaling,
+                          "constant":st.session_state.cereal_scaling,
                           "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
@@ -395,7 +395,7 @@ with col1:
                           "source":["production", "imports"],
                           "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
                           "scaling_nutrient":scaling_nutrient,
-                          "constant":cereal_scaling,
+                          "constant":st.session_state.cereal_scaling,
                           "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
@@ -404,7 +404,7 @@ with col1:
                           "source":["production", "imports"],
                           "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
                           "scaling_nutrient":scaling_nutrient,
-                          "constant":cereal_scaling,
+                          "constant":st.session_state.cereal_scaling,
                           "non_sel_items":cereal_items})
     
     if not st.session_state.cereal_scaling:
