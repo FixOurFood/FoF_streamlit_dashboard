@@ -80,13 +80,13 @@ with st.sidebar:
                         key="cereals", help=help["sidebar_consumer"][5],
                         disabled=st.session_state["cereal_scaling"])
 
-        waste = st.slider('Food waste and over-eating reduction',
-                        min_value=-100, max_value=100, step=1, value=0,
-                        key="waste", help=help["sidebar_consumer"][6])
-
         labmeat = st.slider('Increase cultured meat uptake',
                         min_value=-100, max_value=100, step=1, value=0,
-                        key="labmeat", help=help["sidebar_consumer"][7])       
+                        key="labmeat", help=help["sidebar_consumer"][7])     
+        
+        waste = st.slider('Food waste and over-eating reduction',
+                        min_value=-100, max_value=100, step=1, value=0,
+                        key="waste", help=help["sidebar_consumer"][6])  
 
         st.button("Reset", on_click=reset_sliders, key='reset_consumer',
                   kwargs={"keys": [consumer_slider_keys, "consumer_bar"]})
