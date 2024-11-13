@@ -68,12 +68,6 @@ def plots(datablock):
             user_id = st.text_input("Enter your unique ID", "AFP")
             submit_state = st.button("Submit pathway")
 
-            if submit_state:
-                total_emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr).sum().values/1e12
-                total_sequestration = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr).sum().values/1e6
-                SSR = datablock["food"]["g/cap/day"].fbs.SSR().sel(Year=metric_yr).to_numpy()
-                submit_scenario(user_id, SSR, total_emissions-total_sequestration, ambition_levels=True)
-
         with col_comp_1:
 
             with st.container(height=750, border=True):
@@ -87,17 +81,46 @@ def plots(datablock):
                            sequestration from agriculture and land use combined
                            </div>''', unsafe_allow_html=True)
                 
-                emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
-                emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
-                seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
+                
+                if st.session_state.emission_factors == "NDC 2020":
+                    
+                    seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
+                    emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
+                    total_emissions = emissions.sum(dim="Item").values/1e6
+                    total_seq = seq_da.sel(Item=["Broadleaved woodland", "Coniferous woodland"]).sum(dim="Item").values/1e6
+                    total_removals = seq_da.sel(Item=["BECCS from waste", "BECCS from overseas biomass", "BECCS from land", "DACCS"]).sum(dim="Item").values/1e6
 
-                c = plot_single_bar_altair(xr.concat([emissions/1e6, -seq_da/1e6], dim="Item"), show="Item",
-                                                axis_title="Sequestration / Production emissions [M tCO2e]",
-                                                ax_min=-3e2, ax_max=3e2, unit="M tCO2e", vertical=True,
-                                                mark_total=True, show_zero=True, ax_ticks=True)
-                
+                    emissions_balance = xr.DataArray(data = list(sector_emissions_dict.values()),
+                                          name="Sectoral emissions",
+                                          coords={"Sector": list(sector_emissions_dict.keys())})
+                    
+                    emissions_balance.loc[{"Sector": "Agriculture"}] = total_emissions
+                    emissions_balance.loc[{"Sector": "Land use sinks"}] = -total_seq
+                    emissions_balance.loc[{"Sector": "Removals"}] = -total_removals
+
+                    c = plot_single_bar_altair(emissions_balance, show="Sector",
+                        axis_title="Mt CO2e / year", unit="Mt CO2e / year", vertical=True,
+                        mark_total=True, show_zero=True, ax_ticks=True)
+                    
+                    print(emissions_balance.sum())
+
+
+                elif st.session_state.emission_factors == "PN18":
+
+                    emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
+                    emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
+                    seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
+
+                    emissions_balance = xr.concat([emissions/1e6, -seq_da/1e6], dim="Item")
+
+                    c = plot_single_bar_altair(emissions_balance, show="Item",
+                                                    axis_title="Sequestration / Production emissions [M tCO2e]",
+                                                    ax_min=-3e2, ax_max=3e2, unit="M tCO2e", vertical=True,
+                                                    mark_total=True, show_zero=True, ax_ticks=True)
+                    
+                    print(emissions_balance.sum())
+                    
                 c = c.properties(height=500)
-                
                 st.altair_chart(c, use_container_width=True)
 
         with col_comp_2:
@@ -234,6 +257,11 @@ def plots(datablock):
                     color=land_color_dict, ax_ticks=True, bar_width=100)
                 
                 st.altair_chart(bar_land_use, use_container_width=True)
+
+        # submit scenario
+        if submit_state:
+            submit_scenario(user_id, SSR_metric_yr, emissions_balance.sum(), ambition_levels=True, check_users=st.session_state.check_ID)
+
 
     # Emissions per food group or origin
     # ----------------------------------

@@ -67,7 +67,8 @@ def project_future(datablock, scale):
     return datablock
 
 def item_scaling(datablock, scale, source, scaling_nutrient,
-                 elasticity=None, items=None, item_group=None):
+                 elasticity=None, items=None, item_group=None,
+                 constant=True, non_sel_items=None):
     """Reduces per capita daily ruminant meat intake and replaces its
     consumption by all other items keeping the overall food consumption constant
     """
@@ -106,9 +107,10 @@ def item_scaling(datablock, scale, source, scaling_nutrient,
                            origin=source,
                            add=True,
                            elasticity=elasticity,
-                           constant=True,
+                           constant=constant,
                            fallback="exports",
-                           add_fallback=False)
+                           add_fallback=False,
+                           non_sel_items=non_sel_items)
 
     # Scale feed, seed and processing
     out = feed_scale(out, food_orig)
@@ -126,7 +128,8 @@ def item_scaling(datablock, scale, source, scaling_nutrient,
 
 def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
                      timescale=10, origin=None, add=True, elasticity=None,
-                     constant=False, fallback=None, add_fallback=True):
+                     constant=False, non_sel_items=None, fallback=None,
+                     add_fallback=True):
     """Scale items quantities across multiple elements in a FoodBalanceSheet
     Dataset 
     
@@ -172,6 +175,9 @@ def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
     constant : bool, optional
         If set to True, the sum of element remains constant by scaling the non
         selected items accordingly.
+    non_sel_items : list, optional
+        List of items to scale to achieve constant quantity sum when constant is
+        set to True.
     fallback : string, optional
         Name of the DataArray used to provide the excess required to balance the
         food balance sheet in case the "origin" falls below zero.
@@ -260,7 +266,9 @@ def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
         delta = out[element] - fbs[element]
 
         # Scale non selected items
-        non_sel_items = np.setdiff1d(fbs.Item.values, items)
+        if non_sel_items is None:
+            non_sel_items = np.setdiff1d(fbs.Item.values, items)
+
         non_sel_scale = (fbs.sel(Item=non_sel_items)[element].sum(dim="Item") - delta.sum(dim="Item")) / fbs.sel(Item=non_sel_items)[element].sum(dim="Item")
         
         # Make sure inf and nan values are not scaled

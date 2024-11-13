@@ -62,6 +62,8 @@ extended_impact = PN18_FAOSTAT["GHG Emissions (IPCC 2013)"].drop_vars(["Item_nam
 
 datablock["impact"]["gco2e/gfood"] = extended_impact
 
+cereal_items = food_uk.sel(Item=food_uk["Item_group"]=="Cereals - Excluding Beer").Item.values
+
 # --------------------------
 # UK Per capita daily values
 # --------------------------

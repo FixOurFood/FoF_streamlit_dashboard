@@ -68,10 +68,31 @@ def bottom_panel(datablock, metric_yr):
         emissions = emissions.fbs.group_sum(coordinate="Item_origin", new_name="Item")
         seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
 
-        c = plot_single_bar_altair(xr.concat([emissions, -seq_da], dim="Item"), show="Item",
-                                            axis_title="Emissions - Sequestration balance",
-                                            ax_min=-3e8, ax_max=3e8, unit="tCO2e", vertical=False,
-                                            mark_total=True, show_zero=True)
+        if st.session_state.emission_factors == "NDC 2020":
+
+            total_emissions = emissions.sum(dim="Item").values/1e6
+            total_seq = seq_da.sel(Item=["Broadleaved woodland", "Coniferous woodland"]).sum(dim="Item").values/1e6
+            total_removals = seq_da.sel(Item=["BECCS from waste", "BECCS from overseas biomass", "BECCS from land", "DACCS"]).sum(dim="Item").values/1e6
+
+            emissions_balance = xr.DataArray(data = list(sector_emissions_dict.values()),
+                                    name="Sectoral emissions",
+                                    coords={"Sector": list(sector_emissions_dict.keys())})
+            
+            emissions_balance.loc[{"Sector": "Agriculture"}] = total_emissions
+            emissions_balance.loc[{"Sector": "Land use sinks"}] = -total_seq
+            emissions_balance.loc[{"Sector": "Removals"}] = -total_removals
+
+            c = plot_single_bar_altair(emissions_balance, show="Sector",
+                axis_title="Sectoral emissions and removals", unit="Mt CO2e / year", vertical=False,
+                mark_total=True, show_zero=True)
+
+
+        elif st.session_state.emission_factors == "PN18":
+
+            c = plot_single_bar_altair(xr.concat([emissions, -seq_da], dim="Item"), show="Item",
+                axis_title="Emissions - Sequestration balance",
+                ax_min=-3e8, ax_max=3e8, unit="tCO2e", vertical=False,
+                mark_total=True, show_zero=True)
 
         with st.container(border=True):
             bar1, bar2 = st.columns((10, 1))

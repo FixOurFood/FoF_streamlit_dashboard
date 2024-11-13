@@ -2,6 +2,7 @@ import streamlit as st
 import gspread
 from google.oauth2 import service_account
 from utils.helper_functions import update_slider, reset_sliders
+import subprocess
 
 SCOPES = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SERVICE_ACCOUNT_FILE = dict(st.secrets["gspread"]["gs_api_key"])
@@ -25,7 +26,7 @@ def get_user_list():
     return user_list
 
 @st.dialog("Submit scenario")
-def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False):
+def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False, check_users=True):
     """Submit the pathway to the Google Sheet.
 
     Parameters:
@@ -43,13 +44,16 @@ def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False):
         None
     """
 
+    hash = get_latest_commit_hash()[:7]
+
     if not ambition_levels:
         row = [user_id, "test"]
         stage_I_worksheet.append_row(row)
         return
     
-    if user_id not in get_user_list():
-        st.error(f'User ID {user_id} not found in database', icon="🚨")
+    if check_users:
+        if user_id not in get_user_list():
+            st.error(f'User ID {user_id} not found in database', icon="🚨")
     
     else:
         row = [user_id,
@@ -80,7 +84,13 @@ def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False):
             st.session_state["DACCS"],
             
             '{0:.2f}'.format(SSR),
-            '{0:.2f}'.format(total_emissions)
+            '{0:.2f}'.format(total_emissions),
+
+            st.session_state.elasticity,
+            st.session_state.bdleaf_seq_ha_yr,
+            st.session_state.conif_seq_ha_yr,
+            st.session_state.emission_factors,
+            hash
         ]
 
         stage_I_worksheet.append_row(row)
@@ -144,7 +154,14 @@ def call_scenarios():
 
     update_slider(keys, pathway_data)
 
-
+def get_latest_commit_hash():
+    try:
+        # Run 'git rev-parse HEAD' to get the last commit hash
+        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip().decode('utf-8')
+        return commit_hash
+    except Exception as e:
+        return f"Error retrieving commit hash: {e}"
+    
 if __name__ == "__main__":
     # submit_scenario("TEST")
 

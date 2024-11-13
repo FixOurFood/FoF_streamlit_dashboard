@@ -21,6 +21,9 @@ from agrifoodpy.land import land
 if "datablock_baseline" not in st.session_state:
     st.session_state["datablock_baseline"] = datablock
 
+if "cereal_scaling" not in st.session_state:
+    st.session_state["cereal_scaling"] = False
+
 # ------------------------
 # Help and tooltip strings
 # ------------------------
@@ -57,31 +60,32 @@ with st.sidebar:
         consumer_slider_keys = ["ruminant", "dairy", "pig_poultry_eggs", "fruit_veg", "cereals", "waste", "labmeat"]
 
         ruminant = st.slider('Reduce ruminant meat consumption',
-                        min_value=0, max_value=100, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="ruminant", help=help_str(help, "sidebar_consumer", 1, "pjtbcox0lw1k"))
         
         dairy = st.slider('Reduce dairy consumption',
-                        min_value=0, max_value=100, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="dairy", help=help["sidebar_consumer"][2])
         
         pig_poultry_eggs = st.slider('Reduce pig, poultry and eggs consumption',
-                        min_value=0, max_value=100, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="pig_poultry_eggs", help=help["sidebar_consumer"][3])
         
         fruit_veg = st.slider('Increase fruit and vegetable consumption',
-                        min_value=0, max_value=300, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="fruit_veg", help=help["sidebar_consumer"][4])
         
         cereals = st.slider('Increase cereal consumption',
-                        min_value=0, max_value=100, step=25,
-                        key="cereals", help=help["sidebar_consumer"][5])
+                        min_value=-100, max_value=100, step=1, value=0,
+                        key="cereals", help=help["sidebar_consumer"][5],
+                        disabled=st.session_state["cereal_scaling"])
 
         waste = st.slider('Food waste and over-eating reduction',
-                        min_value=0, max_value=100, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="waste", help=help["sidebar_consumer"][6])
 
         labmeat = st.slider('Increase cultured meat uptake',
-                        min_value=0, max_value=100, step=25,
+                        min_value=-100, max_value=100, step=1, value=0,
                         key="labmeat", help=help["sidebar_consumer"][7])       
 
         st.button("Reset", on_click=reset_sliders, key='reset_consumer',
@@ -94,19 +98,19 @@ with st.sidebar:
         land_slider_keys = ["pasture_sparing", "land_beccs", "arable_sparing", "foresting_spared"]
 
         pasture_sparing = st.slider('Spared pasture land fraction',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key="pasture_sparing", help=help["sidebar_land"][0])        
 
         arable_sparing = st.slider('Spared arable land fraction',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key="arable_sparing", help=help["sidebar_land"][1])
 
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
-                        min_value=0, max_value=20, step=5,
+                        min_value=0, max_value=20, step=1,
                         key="land_beccs", help=help["sidebar_innovation"][2])
 
         foresting_spared = st.slider('Forested spared land fraction',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key="foresting_spared", help=help["sidebar_land"][2])
         
         st.button("Reset", on_click=reset_sliders, key='reset_land',
@@ -123,23 +127,23 @@ with st.sidebar:
                                  "fossil_livestock"]
         
         silvopasture = st.slider('Pasture land % converted to silvopasture',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='silvopasture', help=help["sidebar_land"][3])        
         
         methane_inhibitor = st.slider('Methane inhibitor use in livestock feed',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='methane_inhibitor', help=help["sidebar_livestock"][0])
         
         manure_management = st.slider('Manure management in livestock farming',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='manure_management', help=help["sidebar_livestock"][1])
         
         animal_breeding = st.slider('Livestock breeding',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='animal_breeding', help=help["sidebar_livestock"][2])
         
         fossil_livestock = st.slider('Fossil fuel use for heating, machinery',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='fossil_livestock', help=help["sidebar_livestock"][4])
         
 
@@ -153,11 +157,11 @@ with st.sidebar:
         arable_slider_keys = ["agroforestry", "fossil_arable"]
         
         agroforestry = st.slider('Arable land % converted to agroforestry',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='agroforestry', help=help["sidebar_land"][4])
 
         fossil_arable = st.slider('Fossil fuel use for machinery',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='fossil_arable', help=help["sidebar_arable"][1])
                         
         st.button("Reset", on_click=reset_sliders, key='reset_arable',
@@ -170,15 +174,15 @@ with st.sidebar:
         technology_slider_keys = ["waste_BECCS", "overseas_BECCS", "DACCS"]
 
         waste_BECCS = st.slider('BECCS sequestration from waste \n [Mt CO2e / yr]',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='waste_BECCS', help=help["sidebar_innovation"][0])
 
         overseas_BECCS = st.slider('BECCS sequestration from overseas biomass \n [Mt CO2e / yr]',
-                        min_value=0, max_value=100, step=25,
+                        min_value=0, max_value=100, step=1,
                         key='overseas_BECCS', help=help["sidebar_innovation"][1])
 
         DACCS = st.slider('DACCS sequestration \n [Mt CO2e / yr]',
-                        min_value=0, max_value=20, step=5,
+                        min_value=0, max_value=20, step=1,
                         key='DACCS', help=help["sidebar_innovation"][3])
 
         st.button("Reset", on_click=reset_sliders, key='reset_technology',
@@ -187,10 +191,13 @@ with st.sidebar:
     # Advanced settings
 
     with st.expander("Advanced settings"):
-        from advanced_settings import advanced_settings as advs
         
         password = st.text_input("Enter the advanced settings password", type="password")
         if password == st.secrets["advanced_options_password"]:
+
+            check_ID = st.checkbox('Check ID for submission', value=True, key='check_ID')
+            emission_factors = st.selectbox('Emission factors', options=["PN18", "NDC 2020"], key='emission_factors')
+            cereal_scaling = st.checkbox('Scale cereal production to meet nutrient demand', value=False, key='cereal_scaling')
 
             labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=25., key='labmeat_slider')
             rda_kcal = st.slider('Recommended daily energy intake [kCal]', min_value=2000, max_value=2500, value=2250, key='rda_slider')
@@ -248,6 +255,11 @@ with st.sidebar:
             if password != "":
                 st.error("Incorrect password")
 
+            st.session_state.cereal_scaling = False
+
+            st.session_state.check_ID = True
+            st.session_state.emission_factors = "PN18"
+
             labmeat_co2e = value=25
             rda_kcal = 2250
             n_scale = 20
@@ -255,10 +267,10 @@ with st.sidebar:
             max_ghge_plant = 30
             bdleaf_conif_ratio = 50
 
-            bdleaf_seq_ha_yr = 12.5
-            conif_seq_ha_yr = 23.5
+            st.session_state.bdleaf_seq_ha_yr = 12.5
+            st.session_state.conif_seq_ha_yr = 23.5
 
-            elasticity = 1
+            st.session_state.elasticity = 1
             agroecology_tree_coverage = 0.1
 
             # tillage_prod_factor = 0.3
@@ -299,10 +311,61 @@ with col1:
     # ----------------------------------------
 
     datablock = copy.deepcopy(st.session_state["datablock_baseline"])
+    print(cereal_items)
+
+    # Change to NDC factors if needed
+    if st.session_state['emission_factors'] == "NDC 2020":
+        scale_ones = xr.DataArray(data = np.ones_like(food_uk.Year.values),
+                          coords = {"Year":food_uk.Year.values})
+
+        NDC_emissions = PN18_FAOSTAT["GHG Emissions (IPCC 2013)"]
+
+        NDC_emissions.loc[{}] = 0
+
+        NDC_emissions.loc[{"Item":2731}] = 16.94 
+        NDC_emissions.loc[{"Item":2617}] = 0.13
+        NDC_emissions.loc[{"Item":2513}] = 1.06
+        NDC_emissions.loc[{"Item":2656}] = 0.21
+        NDC_emissions.loc[{"Item":2658}] = 0.54
+        NDC_emissions.loc[{"Item":2520}] = 0.00
+        NDC_emissions.loc[{"Item":2740}] = 0.00
+        NDC_emissions.loc[{"Item":2614}] = 0.10
+        NDC_emissions.loc[{"Item":2743}] = 0.27 
+        NDC_emissions.loc[{"Item":2625}] = 0.10 
+        NDC_emissions.loc[{"Item":2620}] = 0.16
+        NDC_emissions.loc[{"Item":2582}] = 1.63
+        NDC_emissions.loc[{"Item":2735}] = 2.74
+        NDC_emissions.loc[{"Item":2948}] = 0.27
+        NDC_emissions.loc[{"Item":2732}] = 11.32
+        NDC_emissions.loc[{"Item":2516}] = 1.06
+        NDC_emissions.loc[{"Item":2586}] = 1.63
+        NDC_emissions.loc[{"Item":2570}] = 1.63
+        NDC_emissions.loc[{"Item":2602}] = 0.05
+        NDC_emissions.loc[{"Item":2547}] = 1.66
+        NDC_emissions.loc[{"Item":2733}] = 0.97
+        NDC_emissions.loc[{"Item":2531}] = 0.29
+        NDC_emissions.loc[{"Item":2734}] = 0.15
+        NDC_emissions.loc[{"Item":2549}] = 0.91
+        NDC_emissions.loc[{"Item":2574}] = 1.63
+        NDC_emissions.loc[{"Item":2558}] = 1.63
+        NDC_emissions.loc[{"Item":2515}] = 1.06
+        NDC_emissions.loc[{"Item":2571}] = 2.05
+        NDC_emissions.loc[{"Item":2542}] = 0.52
+        NDC_emissions.loc[{"Item":2537}] = 0.36
+        NDC_emissions.loc[{"Item":2601}] = 0.03
+        NDC_emissions.loc[{"Item":2605}] = 0.23
+        NDC_emissions.loc[{"Item":2511}] = 0.80
+        NDC_emissions.loc[{"Item":2655}] = 0.54
+
+        extended_impact = NDC_emissions.drop_vars(["Item_name", "Item_group", "Item_origin"]) * scale_ones
+
+        datablock["impact"]["gco2e/gfood"] = extended_impact
+
     food_system = Pipeline(datablock)
 
     # Global parameters
-    food_system.datablock_write(["global_parameters", "timescale"], advs["n_scale"]["value"])
+    food_system.datablock_write(["global_parameters", "timescale"], n_scale)
+
 
     # Consumer demand
     food_system.add_step(project_future,
@@ -312,36 +375,45 @@ with col1:
                          {"scale":1-ruminant/100,
                           "items":[2731, 2732],
                           "source":["production", "imports"],
-                          "elasticity":[elasticity, 1-elasticity],
-                          "scaling_nutrient":scaling_nutrient})
+                          "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
+                          "scaling_nutrient":scaling_nutrient,
+                          "constant":cereal_scaling,
+                          "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
                          {"scale":1-pig_poultry_eggs/100,
                           "items":[2733, 2734, 2949],
                           "source":["production", "imports"],
-                          "elasticity":[elasticity, 1-elasticity],
-                          "scaling_nutrient":scaling_nutrient})
+                          "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
+                          "scaling_nutrient":scaling_nutrient,
+                          "constant":cereal_scaling,
+                          "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
                          {"scale":1-dairy/100,
                           "items":[2740, 2743, 2948],
                           "source":["production", "imports"],
-                          "elasticity":[elasticity, 1-elasticity],
-                          "scaling_nutrient":scaling_nutrient})
+                          "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
+                          "scaling_nutrient":scaling_nutrient,
+                          "constant":cereal_scaling,
+                          "non_sel_items":cereal_items})
     
     food_system.add_step(item_scaling,
                          {"scale":1+fruit_veg/100,
                           "item_group":["Vegetables", "Fruits - Excluding Wine"],
                           "source":["production", "imports"],
-                          "elasticity":[elasticity, 1-elasticity],
-                          "scaling_nutrient":scaling_nutrient})
+                          "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
+                          "scaling_nutrient":scaling_nutrient,
+                          "constant":cereal_scaling,
+                          "non_sel_items":cereal_items})
     
-    food_system.add_step(item_scaling,
-                         {"scale":1+cereals/100,
-                          "item_group":["Cereals - Excluding Beer"],
-                          "source":["production", "imports"],
-                          "elasticity":[elasticity, 1-elasticity],
-                          "scaling_nutrient":scaling_nutrient})
+    if not st.session_state.cereal_scaling:
+        food_system.add_step(item_scaling,
+                            {"scale":1+cereals/100,
+                            "item_group":["Cereals - Excluding Beer"],
+                            "source":["production", "imports"],
+                            "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity],
+                            "scaling_nutrient":scaling_nutrient})
     
     food_system.add_step(food_waste_model,
                          {"waste_scale":waste,
@@ -432,8 +504,8 @@ with col1:
     
     # Compute emissions and sequestration
     food_system.add_step(forest_sequestration_model,
-                         {"seq_broadleaf_ha_yr":bdleaf_seq_ha_yr,
-                          "seq_coniferous_ha_yr":conif_seq_ha_yr})
+                         {"seq_broadleaf_ha_yr":st.session_state.bdleaf_seq_ha_yr,
+                          "seq_coniferous_ha_yr":st.session_state.conif_seq_ha_yr})
 
     food_system.add_step(compute_emissions)
 

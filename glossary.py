@@ -127,3 +127,18 @@ land_label_dict = {
     'Agroforestry' : "Agroforestry",
 }
 
+sector_emissions_dict = {
+    "Surface transport":0.87,
+    "Buildings":1.1,
+    "Manufacturing and construction":2.81,
+    "Electricity generation":1.2,
+    "Fuel supply":0.43,
+    "Agriculture":0,
+    "Land use sinks":0,
+    "Land use sources":19.79,
+    "Aviation":23.38,
+    "Shipping":0.89,
+    "Waste":7.83,
+    "F-gases":2.48,
+    "Removals":0
+}
