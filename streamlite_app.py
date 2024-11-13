@@ -80,9 +80,13 @@ with st.sidebar:
                         key="cereals", help=help["sidebar_consumer"][5],
                         disabled=st.session_state["cereal_scaling"])
 
-        labmeat = st.slider('Increase cultured meat uptake',
+        labmeat = st.slider('Increase meat alternatives uptake',
                         min_value=-100, max_value=100, step=1, value=0,
                         key="labmeat", help=help["sidebar_consumer"][7])     
+        
+        dairy_alternatives = st.slider('Increase dairy alternatives uptake',
+                        min_value=-100, max_value=100, step=1, value=0,
+                        key="dairy_alt", help=help["sidebar_consumer"][7])
         
         waste = st.slider('Food waste and over-eating reduction',
                         min_value=-100, max_value=100, step=1, value=0,
