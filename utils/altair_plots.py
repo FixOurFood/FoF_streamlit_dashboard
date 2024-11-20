@@ -128,7 +128,8 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
                                     ax_min=None, ax_max=None, unit="",
                                     vertical=True, mark_total=False,
                                     bar_width=80, show_zero=False,
-                                    ax_ticks=False, color=None):
+                                    ax_ticks=False, color=None, legend=False,
+                                    reference=None):
     
     df_pos = da.where(da>0).to_dataframe().reset_index().fillna(0)
     df_neg = da.where(da<0).to_dataframe().reset_index().fillna(0)
@@ -164,11 +165,17 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
         icon_params = {"x": "total", "y": "variable"}
 
     if color is None:
-        alt_color = alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b'))
+        if legend:
+            alt_color = alt.Color(show, title=None, scale=alt.Scale(scheme='category20b'))
+        else:
+            alt_color = alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b'))
     
     else:
-        alt_color = alt.Color(show, title=None, legend=None,
-                          scale=alt.Scale(domain=color.keys(),
+        if legend:
+            alt_color = alt.Color(show, title=None, scale=alt.Scale(domain=color.keys(),
+                                          range=color.values()))
+        else:
+            alt_color = alt.Color(show, title=None, legend=None, scale=alt.Scale(domain=color.keys(),
                                           range=color.values()))
 
     # Plot positive values
@@ -222,6 +229,17 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
             })).mark_rule(
                 color="black",
                 thickness=2,
+            ).encode(
+                **zero_line_params
+        )
+
+    if reference is not None:
+        c += alt.Chart(pd.DataFrame({
+            'value': reference,
+            'color': ['black']
+            })).mark_rule(
+                color="red",
+                thickness=1,
             ).encode(
                 **zero_line_params
         )

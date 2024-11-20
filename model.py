@@ -331,13 +331,14 @@ def food_waste_model(datablock, waste_scale, kcal_rda, source):
 
     return datablock
 
-def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, source, extra_items = []):
-    """Replaces selected meat items by cultured products on a weight by weight
+def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, items, copy_from,
+                        new_items, new_item_name, source, extra_items = []):
+    """Replaces selected items by cultured products on a weight by weight
     basis. 
     """
 
     timescale = datablock["global_parameters"]["timescale"]
-    items_to_replace = [2731, 2732]
+    items_to_replace = items
 
     if len(extra_items) > 0:
         items_to_replace = np.concatenate([items_to_replace, extra_items])
@@ -346,15 +347,16 @@ def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, source, extra_i
     qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
     
     for key in qty_key:
-        datablock["food"][key] = datablock["food"][key].fbs.add_items(5000)
-        datablock["food"][key]["Item_name"].loc[{"Item":5000}] = "Cultured meat"
-        datablock["food"][key]["Item_origin"].loc[{"Item":5000}] = "Cultured Products"
-        datablock["food"][key]["Item_group"].loc[{"Item":5000}] = "Cultured Products"
+        datablock["food"][key] = datablock["food"][key].fbs.add_items(new_items)
+        datablock["food"][key]["Item_name"].loc[{"Item":new_items}] = new_item_name
+        datablock["food"][key]["Item_origin"].loc[{"Item":new_items}] = "Cultured Products"
+        datablock["food"][key]["Item_group"].loc[{"Item":new_items}] = "Cultured Products"
         # Set values to zero to avoid issues
-        datablock["food"][key].loc[{"Item":5000}] = 0
+        datablock["food"][key].loc[{"Item":new_items}] = 0
 
     # Scale products by cultured_scale
     food_orig = copy.deepcopy(datablock["food"]["g/cap/day"])
+    kcal_orig = copy.deepcopy(datablock["food"]["kCal/cap/day"])
 
     scale_labmeat = logistic_food_supply(food_orig, timescale, 1, 1-cultured_scale)
 
@@ -371,24 +373,36 @@ def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, source, extra_i
     
     # Add delta to cultured meat
     delta = (datablock["food"]["g/cap/day"]-out).sel(Item=items_to_replace).sum(dim="Item")
-    out.loc[{"Item":5000}] += delta
+    out.loc[{"Item":new_items}] += delta
+
+    # Reduce feed and seed
+    out = feed_scale(out, food_orig)
+
     datablock["food"]["g/cap/day"] = out
 
     # Add nutrition values for cultured meat
     nutrition_keys = ["g_prot/g_food", "g_fat/g_food", "kCal/g_food"]
     for key in nutrition_keys:
-        datablock["food"][key] = datablock["food"][key].fbs.add_items(5000, copy_from=[2731])
-        datablock["food"][key]["Item_name"].loc[{"Item":5000}] = "Cultured meat"
-        datablock["food"][key]["Item_origin"].loc[{"Item":5000}] = "Cultured Products"
-        datablock["food"][key]["Item_group"].loc[{"Item":5000}] = "Cultured Products"
+        datablock["food"][key] = datablock["food"][key].fbs.add_items(new_items, copy_from=[copy_from])
+        datablock["food"][key]["Item_name"].loc[{"Item":new_items}] = new_item_name
+        datablock["food"][key]["Item_origin"].loc[{"Item":new_items}] = "Cultured Products"
+        datablock["food"][key]["Item_group"].loc[{"Item":new_items}] = "Cultured Products"
 
     # Add emissions factor for cultured meat
-    datablock["impact"]["gco2e/gfood"] = datablock["impact"]["gco2e/gfood"].fbs.add_items(5000)
-    datablock["impact"]["gco2e/gfood"].loc[{"Item":5000}] = labmeat_co2e
+    datablock["impact"]["gco2e/gfood"] = datablock["impact"]["gco2e/gfood"].fbs.add_items(new_items)
+    datablock["impact"]["gco2e/gfood"].loc[{"Item":new_items}] = labmeat_co2e
 
     # Recompute per capita values
     for key_pc, key_n in zip(qty_key[1:], nutrition_keys):
         datablock["food"][key_pc] = datablock["food"]["g/cap/day"] * datablock["food"][key_n]
+
+    kcal_cap_day = datablock["food"]["kCal/cap/day"]
+
+    out_kcal_cap_day = scale_kcal_feed(kcal_cap_day, kcal_orig, new_items)
+    ratio = out_kcal_cap_day / kcal_cap_day
+
+    for key in qty_key:
+        datablock["food"][key] *= ratio
 
     return datablock
 
@@ -893,10 +907,10 @@ def feed_scale(fbs, ref):
                 / ref_feed_arr
     seed_scale = fbs["production"].sel(Item=fbs.Item_origin=="Vegetal Products").sum(dim="Item") \
                 / ref_seed_arr
-
+    
     # Set feed_scale and seed_scale to 1 where ref arrays are close or equal to zero
     feed_scale = xr.where(np.isclose(ref_feed_arr, 0), 1, feed_scale)
-    feed_scale = xr.where(np.isclose(ref_seed_arr, 0), 1, seed_scale)
+    seed_scale = xr.where(np.isclose(ref_seed_arr, 0), 1, seed_scale)
 
     processing_scale = fbs["production"].sum(dim="Item") \
                 / ref["production"].sum(dim="Item")
@@ -941,3 +955,27 @@ def logistic_food_supply(fbs, timescale, c_init, c_end):
     scale = logistic_scale(y0, y1, y2, y3, c_init=c_init, c_end=c_end)
 
     return scale
+
+def scale_kcal_feed(obs, ref, items):
+    """Scales the feed quantities according to the difference in production of 
+    specified items, on a calorie by calorie basis"""
+
+    # Obtain reference and observed production values
+    ref_prod = ref["production"].sel(Item=items).expand_dims(dim="Item").sum(dim="Item")
+    obs_prod = obs["production"].sel(Item=items).expand_dims(dim="Item").sum(dim="Item")
+
+    # Compute difference 
+    delta = obs_prod - ref_prod
+
+    # Compute scaling factors for feed based on new required quantities
+    ref_feed = ref["feed"].sum(dim="Item")
+    obs_feed = obs["feed"].sum(dim="Item")
+
+    # Scaling factor to be applied to old feed quantities
+    feed_scale = (obs_feed + delta) / obs_feed
+
+    # Adjust feed quantities
+    out = obs.fbs.scale_add(element_in="feed", element_out="production",
+                            scale=feed_scale)
+    
+    return out

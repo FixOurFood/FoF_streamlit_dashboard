@@ -34,54 +34,13 @@ def plots(datablock):
     # -------
     if plot_key == "Summary":
 
-        col_text, col_comp_1, col_comp_2, col_comp_3 = st.columns([0.6,1,1,1])
-
-        with col_text:
-            st.markdown("## AgriFood Calculator")
-            st.caption('''<div style="text-align: justify;">
-                       Move the ambition level sliders to explore the outcomes of
-                       different interventions on key metrics of the food system,
-                       including GHG emissions, sequestration and land use.
-                       </div>''', unsafe_allow_html=True)
-            st.write("")
-            st.caption('''<div style="text-align: justify;">
-                       Alternatively, select an scenario from the dropdown menu
-                       on the top of the side bar to automatically position
-                       sliders to their pre-set values.
-                       </div>''', unsafe_allow_html=True)
-            st.write("")
-            st.caption('''<div style="text-align: justify;">
-                       Detailed charts describing the effects of interventions
-                       on different aspects of the food system can be found in
-                       the dropdown menu at the top of the page.
-                       </div>''', unsafe_allow_html=True)
-            st.write("")
-
-            st.caption(f'''<div style="text-align: justify;">
-                       Once you have selected the ambition levels for the
-                       different interventions, enter your unique ID on the
-                       field below and click the "Submit pathway" button. You
-                       can change your responses as many times as you want
-                       before the Stage I deadline on {stage_I_deadline}.
-                       </div>''', unsafe_allow_html=True)
-
-            user_id = st.text_input("Enter your unique ID", "AFP")
-            submit_state = st.button("Submit pathway")
+        col_comp_1, col_comp_2, col_comp_3 = st.columns([1,1,1])
 
         with col_comp_1:
 
             with st.container(height=750, border=True):
-                st.markdown('''**Agriculture and land use emissions balance**''')
-                st.caption('''<div style="text-align: justify;">
-                           Below is the comparison between the total emissions from
-                           food produced in the UK and the sequestration from different land uses
-                           Emissions include all stages of production up to retail, including
-                           processing and transportation, and are dissagregated into food product,
-                           origin. The yellow diamond shows the net balance between emissions and
-                           sequestration from agriculture and land use combined
-                           </div>''', unsafe_allow_html=True)
                 
-                
+                st.markdown('''**Emissions and removals balance**''')
                 if st.session_state.emission_factors == "NDC 2020":
                     
                     seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
@@ -100,7 +59,8 @@ def plots(datablock):
 
                     c = plot_single_bar_altair(emissions_balance, show="Sector",
                         axis_title="Mt CO2e / year", unit="Mt CO2e / year", vertical=True,
-                        mark_total=True, show_zero=True, ax_ticks=True)
+                        mark_total=True, show_zero=True, ax_ticks=True, legend=True,
+                        ax_min=-90, ax_max=120, reference=95.24)
                     
                     print(emissions_balance.sum())
 
@@ -123,18 +83,20 @@ def plots(datablock):
                 c = c.properties(height=500)
                 st.altair_chart(c, use_container_width=True)
 
+                st.caption('''<div style="text-align: justify;">
+                           Above is the comparison between the total emissions from
+                           food produced in the UK and the sequestration from different land uses
+                           Emissions include all stages of production up to retail, including
+                           processing and transportation, and are dissagregated into food product,
+                           origin. The yellow diamond shows the net balance between emissions and
+                           sequestration from agriculture and land use combined
+                           </div>''', unsafe_allow_html=True)
+
         with col_comp_2:
             with st.container(height=750, border=True):
 
                 st.markdown('''**Self-sufficiency ratio.**''')
-                st.caption('''<div style="text-align: justify;">
-                           The self-sufficiency ratio (SSR) is the ratio of the
-                           amount of food produced by a country to the amount of
-                           food it would need to meet its own food needs.
-                           A low value indicates that a country is highly dependent
-                           on imports while a value higher than 100% means a country
-                           produces more food than it needs
-                           </div>''', unsafe_allow_html=True)
+
                 
                 SSR = datablock["food"]["g/cap/day"].fbs.SSR()
                 SSR_metric_yr = SSR.sel(Year=metric_yr).to_numpy()
@@ -169,8 +131,16 @@ def plots(datablock):
                     color=alt.Color('color:N', scale=None),
                     strokeWidth=alt.value(4)
                 )
+
+                ref_line = alt.Chart(pd.DataFrame({
+                    'value': 0.682,
+                    'color': ['blue']
+                    })).mark_rule(
+                        color="blue",
+                        thickness=1,
+                    ).encode(x="value")
                 
-                st.altair_chart(bars + ssr_line, use_container_width=True)  
+                st.altair_chart(bars + ssr_line + ref_line, use_container_width=True)  
 
                 if SSR_metric_yr < SSR_ref:
                     st.markdown(f'''
@@ -213,20 +183,23 @@ def plots(datablock):
                                the UK is completely self-sufficient and does not depend
                                on imports to meet its food needs.
                                </div>''', unsafe_allow_html=True)
-
-                
+                st.write("")
+                st.caption('''<div style="text-align: justify;">
+                The self-sufficiency ratio (SSR) is the ratio of the
+                amount of food produced by a country to the amount of
+                food it would need to meet its own food needs.
+                A low value indicates that a country is highly dependent
+                on imports while a value higher than 100% means a country
+                produces more food than it needs
+                </div>''', unsafe_allow_html=True)
+               
         with col_comp_3:
             with st.container(height=750, border=True):
 
                 st.markdown('''**Land use distribution**''')
-                st.caption('''<div style="text-align: justify;">
-                           The map below shows the distribution of land use types in the
-                           UK. Land use types are associated with different processes,
-                           including food production, carbon sequestration and hybrid
-                           productive systems such as agroforestry and silvopasture.
-                           </div>''', unsafe_allow_html=True)
 
-                f, plot1 = plt.subplots(1, figsize=(7, 7))
+
+                f, plot1 = plt.subplots(1, figsize=(6, 6))
                 pctg = datablock["land"]["percentage_land_use"]
                 LC_toplot = map_max(pctg, dim="aggregate_class")
 
@@ -248,7 +221,9 @@ def plots(datablock):
                 plot1.set_xlim(left=-100)
                 plot1.set_ylim(top=1000)
 
-                st.pyplot(f, use_container_width=True)
+                _, col_plot, _ = st.columns((0.1, 0.7, 0.1))
+                with col_plot:
+                    st.pyplot(f)
 
                 pctg = datablock["land"]["percentage_land_use"]
                 totals = pctg.sum(dim=["x", "y"])
@@ -258,9 +233,38 @@ def plots(datablock):
                 
                 st.altair_chart(bar_land_use, use_container_width=True)
 
-        # submit scenario
-        if submit_state:
-            submit_scenario(user_id, SSR_metric_yr, emissions_balance.sum(), ambition_levels=True, check_users=st.session_state.check_ID)
+                st.caption('''<div style="text-align: justify;">
+                The map above shows the distribution of land use types in the
+                UK. Land use types are associated with different processes,
+                including food production, carbon sequestration and hybrid
+                productive systems such as agroforestry and silvopasture.
+                </div>''', unsafe_allow_html=True)
+
+        with st.container():
+            st.markdown("## AgriFood Calculator")
+            st.caption(f'''<div style="text-align: justify;">
+                        Move the ambition level sliders to explore the outcomes of
+                        different interventions on key metrics of the food system,
+                        including GHG emissions, sequestration and land use.                    
+                        Alternatively, select an scenario from the dropdown menu
+                        on the top of the side bar to automatically position
+                        sliders to their pre-set values.                    
+                        Detailed charts describing the effects of interventions
+                        on different aspects of the food system can be found in
+                        the dropdown menu at the top of the page.
+                        Once you have selected the ambition levels for the
+                        different interventions, enter your unique ID on the
+                        field below and click the "Submit pathway" button. You
+                        can change your responses as many times as you want
+                        before the Stage I deadline on {stage_I_deadline}.
+                        </div>''', unsafe_allow_html=True)
+
+            user_id = st.text_input("Enter your unique ID", "AFP")
+            submit_state = st.button("Submit pathway")
+
+            # submit scenario
+            if submit_state:
+                submit_scenario(user_id, SSR_metric_yr, emissions_balance.sum(), ambition_levels=True, check_users=st.session_state.check_ID)
 
 
     # Emissions per food group or origin

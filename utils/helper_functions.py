@@ -23,6 +23,7 @@ default_widget_values = {
     "cereals": 0,
     "waste": 0,
     "labmeat": 0,
+    "dairy_alt":0,
 
     # Land use sliders and widgets
     "land_bar": 0,
