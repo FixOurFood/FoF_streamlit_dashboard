@@ -24,6 +24,9 @@ if "datablock_baseline" not in st.session_state:
 if "cereal_scaling" not in st.session_state:
     st.session_state["cereal_scaling"] = False
 
+if "cereals" not in st.session_state:
+    st.session_state["cereals"] = 0
+
 # ------------------------
 # Help and tooltip strings
 # ------------------------
