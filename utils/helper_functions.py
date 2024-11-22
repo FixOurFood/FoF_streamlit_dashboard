@@ -59,9 +59,9 @@ default_widget_values = {
     "timescale_slider": 20,
     "max_ghg_animal": 30,
     "max_ghg_plant": 30,
-    "bdleaf_conif_ratio": 50,
-    "bdleaf_seq_ha_yr": 12.5,
-    "conif_seq_ha_yr": 23.5,
+    "bdleaf_conif_ratio": 75,
+    "bdleaf_seq_ha_yr": 3.5,
+    "conif_seq_ha_yr": 6.5,
     "nutrient_constant": "kCal/cap/day",
     "domestic_use_source": "production"
 }

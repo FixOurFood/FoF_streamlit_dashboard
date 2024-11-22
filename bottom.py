@@ -23,7 +23,7 @@ def bottom_panel(datablock, metric_yr):
 
         df = pd.DataFrame({"Item":["Low", "Mid", "High"],
                            "variable":["SSR", "SSR", "SSR"],
-                           "value":[SSR_ref, 1-SSR_ref, 0.2]})
+                           "value":[float(SSR_ref), float(1-SSR_ref), 0.2]})
 
         bars = alt.Chart(df).mark_bar().encode(
             x=alt.X("sum(value):Q",
@@ -48,10 +48,18 @@ def bottom_panel(datablock, metric_yr):
             strokeWidth=alt.value(4)
         )
 
+        ref_line = alt.Chart(pd.DataFrame({
+                    'value': 0.682,
+                    'color': ['blue']
+                    })).mark_rule(
+                        color="blue",
+                        thickness=1,
+                    ).encode(x="value")
+
         with st.container(border=True):
             bar1, bar2 = st.columns((10, 1))
             with bar1:
-                st.altair_chart(bars + ssr_line, use_container_width=True)
+                st.altair_chart(bars + ssr_line + ref_line, use_container_width=True)
             with bar2:
                 st.text("")
                 st.text("", help="""Self sufficiency ratio (SSR) is the ratio of the
@@ -92,7 +100,7 @@ def bottom_panel(datablock, metric_yr):
             c = plot_single_bar_altair(xr.concat([emissions, -seq_da], dim="Item"), show="Item",
                 axis_title="Emissions - Sequestration balance",
                 ax_min=-3e8, ax_max=3e8, unit="tCO2e", vertical=False,
-                mark_total=True, show_zero=True)
+                mark_total=True, show_zero=True, reference=92.39)
 
         with st.container(border=True):
             bar1, bar2 = st.columns((10, 1))
@@ -113,7 +121,7 @@ def bottom_panel(datablock, metric_yr):
         totals = pctg.sum(dim=["x", "y"])
         bar_land_use = plot_single_bar_altair(totals, show="aggregate_class",
                                               axis_title="Land use", unit="Hectares",
-                                              vertical=False)
+                                              vertical=False, color=land_color_dict)
 
         with st.container(border=True):
             bar1, bar2 = st.columns((10, 1))

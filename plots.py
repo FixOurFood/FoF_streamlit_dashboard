@@ -60,11 +60,8 @@ def plots(datablock):
                     c = plot_single_bar_altair(emissions_balance, show="Sector",
                         axis_title="Mt CO2e / year", unit="Mt CO2e / year", vertical=True,
                         mark_total=True, show_zero=True, ax_ticks=True, legend=True,
-                        ax_min=-90, ax_max=120, reference=95.24)
+                        ax_min=-90, ax_max=120, reference=92.39)
                     
-                    print(emissions_balance.sum())
-
-
                 elif st.session_state.emission_factors == "PN18":
 
                     emissions = datablock["impact"]["g_co2e/year"]["production"].sel(Year=metric_yr)/1e6
@@ -77,8 +74,6 @@ def plots(datablock):
                                                     axis_title="Sequestration / Production emissions [M tCO2e]",
                                                     ax_min=-3e2, ax_max=3e2, unit="M tCO2e", vertical=True,
                                                     mark_total=True, show_zero=True, ax_ticks=True)
-                    
-                    print(emissions_balance.sum())
                     
                 c = c.properties(height=500)
                 st.altair_chart(c, use_container_width=True)
@@ -107,7 +102,7 @@ def plots(datablock):
                 
                 df = pd.DataFrame({"Item":["Low", "Mid", "High"],
                                 "variable":["SSR", "SSR", "SSR"],
-                                "value":[SSR_ref, 1-SSR_ref, 0.2]})
+                                "value":[float(SSR_ref), float(1-SSR_ref), 0.2]})
 
                 bars = alt.Chart(df).mark_bar().encode(
                     x=alt.X("sum(value):Q",
@@ -266,7 +261,6 @@ def plots(datablock):
             if submit_state:
                 submit_scenario(user_id, SSR_metric_yr, emissions_balance.sum(), ambition_levels=True, check_users=st.session_state.check_ID)
 
-
     # Emissions per food group or origin
     # ----------------------------------
     if plot_key == "CO2e emission per food group":
@@ -300,10 +294,10 @@ def plots(datablock):
             emissions = datablock["food"][y_key].sel(Year=slice(None, metric_yr))
 
             if option_key == "Food origin":
-                f = plot_years_altair(emissions[element_key]/1e6, show="Item_origin", ylabel=y_key)
+                f = plot_years_altair(emissions[element_key], show="Item_origin", ylabel=y_key)
 
             elif option_key == "Food group":
-                f = plot_years_altair(emissions[element_key]/1e6, show="Item_group", ylabel=y_key)
+                f = plot_years_altair(emissions[element_key], show="Item_group", ylabel=y_key)
 
         f=f.configure_axis(
             labelFontSize=15,
@@ -335,7 +329,6 @@ def plots(datablock):
         
         st.altair_chart(f, use_container_width=True)
         
-
     # FAOSTAT bar plot with per-capita daily values
     # ---------------------------------------------
     elif plot_key == "Per capita daily values":
@@ -363,7 +356,6 @@ def plots(datablock):
             )
 
         st.altair_chart(f, use_container_width=True)
-        
         
     # Self-sufficiency ratio as a function of time
     # --------------------------------------------

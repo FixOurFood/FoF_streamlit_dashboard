@@ -166,14 +166,15 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
 
     if color is None:
         if legend:
-            alt_color = alt.Color(show, title=None, scale=alt.Scale(scheme='category20b'))
+            alt_color = alt.Color(show, title=None, scale=alt.Scale(scheme='category20b'),
+                                  sort=list(reversed(df_pos[show].values)))
         else:
             alt_color = alt.Color(show, title=None, legend=None, scale=alt.Scale(scheme='category20b'))
     
     else:
         if legend:
             alt_color = alt.Color(show, title=None, scale=alt.Scale(domain=color.keys(),
-                                          range=color.values()))
+                                  range=color.values()), sort=list(reversed(df_pos[show].values)))
         else:
             alt_color = alt.Color(show, title=None, legend=None, scale=alt.Scale(domain=color.keys(),
                                           range=color.values()))
@@ -233,6 +234,7 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
                 **zero_line_params
         )
 
+    # Add a line for arbitrary reference
     if reference is not None:
         c += alt.Chart(pd.DataFrame({
             'value': reference,
@@ -241,7 +243,8 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
                 color="red",
                 thickness=1,
             ).encode(
-                **zero_line_params
+                **zero_line_params,
+                tooltip=[alt.Tooltip('value:Q', title='Reference')]
         )
 
     # Set bar width

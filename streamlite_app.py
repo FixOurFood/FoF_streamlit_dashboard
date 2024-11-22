@@ -75,10 +75,11 @@ with st.sidebar:
                         min_value=-100, max_value=100, step=1, value=0,
                         key="fruit_veg", help=help["sidebar_consumer"][4])
         
-        cereals = st.slider('Increase cereal consumption',
-                        min_value=-100, max_value=100, step=1, value=0,
-                        key="cereals", help=help["sidebar_consumer"][5],
-                        disabled=st.session_state["cereal_scaling"])
+        if not st.session_state["cereal_scaling"]:
+            cereals = st.slider('Increase cereal consumption',
+                            min_value=-100, max_value=100, step=1, value=0,
+                            key="cereals", help=help["sidebar_consumer"][5],
+                            disabled=st.session_state["cereal_scaling"])
 
         meat_alternatives = st.slider('Increase meat alternatives uptake',
                         min_value=-100, max_value=100, step=1, value=0,
@@ -203,6 +204,8 @@ with st.sidebar:
             emission_factors = st.selectbox('Emission factors', options=["NDC 2020", "PN18"], key='emission_factors')
             cereal_scaling = st.checkbox('Scale cereal production to meet nutrient demands', value=True, key='cereal_scaling')
 
+            cc_production_decline = st.checkbox('Production decline caused by climate change', value=False, key='cc_production_decline')
+
             labmeat_co2e = st.slider('Cultured meat GHG emissions [g CO2e / g]', min_value=1., max_value=120., value=6.5, key='labmeat_slider')
             dairy_alternatives_co2e = st.slider('Dairy alternatives GHG emissions [g CO2e / g]', min_value=0.10, max_value=0.27, value=0.14, key='dairy_alternatives_slider')
             
@@ -244,7 +247,7 @@ with st.sidebar:
                                         key='nutrient_constant')
             
             st.button("Reset", on_click=update_slider,
-                    kwargs={"values": [6.5, 0.14, 2250, 20, 30, 30, 50, 12.5, 23.5, 0.1, "kCal/cap/day"],
+                    kwargs={"values": [6.5, 0.14, 2250, 20, 30, 30, 50, 3.5, 6.5, 0.1, "kCal/cap/day"],
                             "keys": ['labmeat_slider',
                                      'dairy_alternatives_slider',
                                      'rda_slider',
@@ -266,14 +269,16 @@ with st.sidebar:
             st.session_state.check_ID = True
             st.session_state.emission_factors = "NDC 2020"
 
+            cc_production_decline = False
+
             labmeat_co2e = 6.5
             dairy_alternatives_co2e = 0.14
             rda_kcal = 2250
             n_scale = 20
             max_ghge_animal = 30
             max_ghge_plant = 30
-            bdleaf_conif_ratio = 50
 
+            st.session_state.bdleaf_conif_ratio = 75
             st.session_state.bdleaf_seq_ha_yr = 3.5
             st.session_state.conif_seq_ha_yr = 6.5
 
@@ -372,7 +377,8 @@ food_system.datablock_write(["global_parameters", "timescale"], n_scale)
 
 # Consumer demand
 food_system.add_step(project_future,
-                        {"scale":proj_pop})
+                        {"scale":proj_pop,
+                         "cc_decline":cc_production_decline})
 
 food_system.add_step(item_scaling,
                         {"scale":1-ruminant/100,
@@ -439,7 +445,8 @@ food_system.add_step(cultured_meat_model,
 food_system.add_step(food_waste_model,
                         {"waste_scale":waste,
                         "kcal_rda":rda_kcal,
-                        "source":"imports"})
+                        "source":["production", "imports"],
+                        "elasticity":[st.session_state.elasticity, 1-st.session_state.elasticity]})
 
 
 # Land management
@@ -455,7 +462,7 @@ food_system.add_step(spare_alc_model,
 
 food_system.add_step(foresting_spared_model,
                         {"forest_fraction":foresting_spared/100,
-                        "bdleaf_conif_ratio":bdleaf_conif_ratio/100})
+                        "bdleaf_conif_ratio":st.session_state.bdleaf_conif_ratio/100})
 
 food_system.add_step(BECCS_farm_land,
                         {"farm_percentage":land_BECCS/100})

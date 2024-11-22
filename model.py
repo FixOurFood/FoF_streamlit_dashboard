@@ -4,12 +4,13 @@ from agrifoodpy.food.food import FoodBalanceSheet
 from agrifoodpy.utils.scaling import logistic_scale, linear_scale
 import warnings
 import copy
+import streamlit as st
 
 # from agrifoodpy.food.food_supply import scale_food, SSR
 # from afp_config import *
 # from helper_functions import *
 
-def project_future(datablock, scale):
+def project_future(datablock, scale, cc_decline=False):
     """Project future food consumption based on scale
     
     Parameters
@@ -44,6 +45,12 @@ def project_future(datablock, scale):
     scale_past = xr.DataArray(np.ones(len(years_past)), dims=["Year"], coords={"Year": years_past})
     scale_tot = xr.concat([scale_past, scale], dim="Year")
 
+    if cc_decline:
+        # Apply 1% decline per year after 2020
+        decline_mask = scale_tot.Year >= 2021
+        decline_years = scale_tot.Year.where(decline_mask, drop=False) - 2021
+        scale_tot = scale_tot.where(~decline_mask, scale_tot / (0.99 ** decline_years))
+
     g_cap_day = g_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
     g_prot_cap_day = g_prot_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
     g_fat_cap_day = g_fat_cap_day.fbs.scale_add(element_in="production", element_out="imports", scale=1/scale_tot, add=False)
@@ -69,8 +76,9 @@ def project_future(datablock, scale):
 def item_scaling(datablock, scale, source, scaling_nutrient,
                  elasticity=None, items=None, item_group=None,
                  constant=True, non_sel_items=None):
-    """Reduces per capita daily ruminant meat intake and replaces its
-    consumption by all other items keeping the overall food consumption constant
+    """Reduces per capita intake quantities and replaces them by other items
+    keeping the overall consumption constant. Scales land use if production
+    changes
     """
 
     timescale = datablock["global_parameters"]["timescale"]
@@ -117,6 +125,12 @@ def item_scaling(datablock, scale, source, scaling_nutrient,
     
     ratio = out / food_orig
     ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Scale land use
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+    land_out = production_land_scale(pctg, out, food_orig, bdleaf_conif_ratio=st.session_state.bdleaf_conif_ratio)
+
+    datablock["land"]["percentage_land_use"] = land_out
 
     # Update per cap/day values and per year values using the same ratio, which
     # is independent of population growth
@@ -290,7 +304,7 @@ def balanced_scaling(fbs, items, scale, element, year=None, adoption=None,
 
     return out
 
-def food_waste_model(datablock, waste_scale, kcal_rda, source):
+def food_waste_model(datablock, waste_scale, kcal_rda, source, elasticity=None):
     """Reduces daily per capita per day intake energy above a set threshold.
     """
 
@@ -313,17 +327,24 @@ def food_waste_model(datablock, waste_scale, kcal_rda, source):
     # Scale food and subtract difference from production
     out = food_orig.fbs.scale_add(element_in="food",
                                   element_out=source,
-                                  scale=scale_waste)
+                                  scale=scale_waste,
+                                  elasticity=elasticity)
     
     # Scale feed, seed and processing
     # out = feed_scale(out, food_orig)
 
     # If supply element is negative, set to zero and add the negative delta to imports
-    out = check_negative_source(out, source)
+    # out = check_negative_source(out, source)
 
     # Scale all per capita qantities proportionally
     ratio = out / food_orig
     ratio = ratio.where(~np.isnan(ratio), 1)
+
+    # Scale land use
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+    land_out = production_land_scale(pctg, out, food_orig, bdleaf_conif_ratio=st.session_state.bdleaf_conif_ratio)
+
+    datablock["land"]["percentage_land_use"] = land_out
 
     qty_key = ["g/cap/day", "g_prot/cap/day", "g_fat/cap/day", "kCal/cap/day"]
     for key in qty_key:
@@ -403,6 +424,12 @@ def cultured_meat_model(datablock, cultured_scale, labmeat_co2e, items, copy_fro
 
     for key in qty_key:
         datablock["food"][key] *= ratio
+
+    # Scale land use
+    pctg = datablock["land"]["percentage_land_use"].copy(deep=True)
+    land_out = production_land_scale(pctg, out, food_orig, bdleaf_conif_ratio=st.session_state.bdleaf_conif_ratio)
+
+    datablock["land"]["percentage_land_use"] = land_out
 
     return datablock
 
@@ -979,3 +1006,40 @@ def scale_kcal_feed(obs, ref, items):
                             scale=feed_scale)
     
     return out
+
+def production_land_scale(land, obs, ref, bdleaf_conif_ratio):
+
+    # Obtain reference and observed production values
+    ref_livest = ref["production"].sel(Year=2100, Item=ref.Item_origin=="Animal Products").sum(dim="Item")
+    ref_arable = ref["production"].sel(Year=2100, Item=ref.Item_origin=="Vegetal Products").sum(dim="Item")
+
+    obs_livest = obs["production"].sel(Year=2100, Item=obs.Item_origin=="Animal Products").sum(dim="Item")
+    obs_arable = obs["production"].sel(Year=2100, Item=obs.Item_origin=="Vegetal Products").sum(dim="Item")
+
+    # Compute ratios
+
+    livest_ratio = obs_livest / ref_livest
+    arable_ratio = obs_arable / ref_arable
+
+    # Scale land use types
+    delta_pasture = land.loc[{"aggregate_class":["Improved grassland", "Semi-natural grassland"]}] * (1-livest_ratio)
+    land.loc[{"aggregate_class":["Improved grassland", "Semi-natural grassland"]}] -= delta_pasture
+
+    delta_arable = land.loc[{"aggregate_class":"Arable"}] * (1-arable_ratio)
+    land.loc[{"aggregate_class":"Arable"}] -= delta_arable
+
+    # Remaining or excess land is allocated to or from forest
+    # Calculate total percentage
+    total = land.sum(dim="aggregate_class")
+    
+    # Check if total differs from 100
+    delta = 100 - total
+    
+    # Adjust Broadleaf woodland to maintain 100% total
+    if "Broadleaf woodland" in land.aggregate_class:
+        land.loc[{"aggregate_class":"Broadleaf woodland"}] += delta
+    else:
+        # If Broadleaf woodland doesn't exist, create it
+        land.loc[{"aggregate_class":"Broadleaf woodland"}] = delta
+    
+    return land
