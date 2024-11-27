@@ -27,7 +27,7 @@ advanced_settings = {
                          "min_value": 0., "max_value": 100., "value": 23.5, "step":0.1, "key": "conif_seq_ha_yr"},
 
     "elasticity" : {"label":"Production / Imports elasticity ratio",
-                    "min_value": 0., "max_value": 1., "value": 0., "step":0.1, "key": "elasticity"},
+                    "min_value": 0., "max_value": 1., "value": 0.5, "step":0.1, "key": "elasticity"},
 
     "agroecology_tree_coverage" : {"label":"Tree coverage in agroecology land",
                     "min_value": 0., "max_value": 1., "value": 0.1, "step":0.01, "key": "tree_coverage"},
