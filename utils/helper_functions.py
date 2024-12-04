@@ -24,9 +24,9 @@ default_widget_values = {
     "pig_poultry_eggs": 0,
     "fruit_veg": 0,
     "cereals": 0,
-    "waste": 0,
     "labmeat": 0,
     "dairy_alt":0,
+    "waste": 0,
 
     # Land use sliders and widgets
     "land_bar": 0,

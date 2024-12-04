@@ -62,8 +62,9 @@ def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False, check_
             st.session_state["pig_poultry_eggs"],
             st.session_state["fruit_veg"],
             st.session_state["cereals"],
-            st.session_state["waste"],
             st.session_state["labmeat"],
+            st.session_state["dairy_alt"],
+            st.session_state["waste"],
             
             st.session_state["foresting_pasture"],
             st.session_state["land_beccs"],
@@ -128,8 +129,9 @@ def call_scenarios():
         "pig_poultry_eggs",
         "fruit_veg",
         "cereals",
-        "waste",
         "labmeat",
+        "dairy_alt",
+        "waste",
 
         "foresting_pasture",
         "land_beccs",
