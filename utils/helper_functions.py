@@ -14,6 +14,9 @@ def update_slider(keys, values):
             st.session_state[key] = value
 
 default_widget_values = {
+    # Scenario
+    "scenario": "Business as Usual",
+
     # Consumer demand sliders and widgets
     "consumer_bar": 0,
     "ruminant": 0,
@@ -27,10 +30,8 @@ default_widget_values = {
 
     # Land use sliders and widgets
     "land_bar": 0,
-    "pasture_sparing": 0,
+    "foresting_pasture": 0,
     "land_beccs": 0,
-    "arable_sparing": 0,
-    "foresting_spared": 0,
 
     # Technology and innovation sliders and widgets
     "innovation_bar": 0,
@@ -44,13 +45,11 @@ default_widget_values = {
     "methane_inhibitor": 0,
     "manure_management": 0,
     "animal_breeding": 0,
-    "soil_carbon_management": 0,
     "fossil_livestock": 0,
 
     # Arable farming sliders and widgets
     "arable_bar": 0,
     "agroforestry": 0,
-    "tillage": 0,
     "fossil_arable": 0,
 
     # Advanced settings sliders and widgets

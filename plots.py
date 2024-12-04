@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit_extras.bottom_container import bottom
+from streamlit_extras.add_vertical_space import add_vertical_space
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -15,8 +16,6 @@ def plots(datablock):
     # ----------------------------------------    
     #                  Plots
     # ----------------------------------------
-
-
 
     col_multiselect, col_but_metric_yr = st.columns([11.5,1.5])
 
@@ -36,11 +35,12 @@ def plots(datablock):
 
         col_comp_1, col_comp_2, col_comp_3 = st.columns([1,1,1])
 
+        # Emissions and removals balance
         with col_comp_1:
 
             with st.container(height=750, border=True):
                 
-                st.markdown('''**Emissions and removals balance**''')
+                st.markdown('''**UK Emissions and removals balance**''')
                 if st.session_state.emission_factors == "NDC 2020":
                     
                     seq_da = datablock["impact"]["co2e_sequestration"].sel(Year=metric_yr)
@@ -57,10 +57,17 @@ def plots(datablock):
                     emissions_balance.loc[{"Sector": "Land use sinks"}] = -total_seq
                     emissions_balance.loc[{"Sector": "Removals"}] = -total_removals
 
+                    show_sectors = st.checkbox("Show agriculture and land use only", value=False)
+
+                    reference = 92.39
+                    if show_sectors:
+                        reference = 31.61
+                        emissions_balance = emissions_balance.sel(Sector=["Agriculture", "Land use sinks", "Removals"])
+
                     c = plot_single_bar_altair(emissions_balance, show="Sector",
                         axis_title="Mt CO2e / year", unit="Mt CO2e / year", vertical=True,
                         mark_total=True, show_zero=True, ax_ticks=True, legend=True,
-                        ax_min=-90, ax_max=120, reference=92.39)
+                        ax_min=-90, ax_max=120, reference=reference)
                     
                 elif st.session_state.emission_factors == "PN18":
 
@@ -87,56 +94,62 @@ def plots(datablock):
                            sequestration from agriculture and land use combined
                            </div>''', unsafe_allow_html=True)
 
+        # Self-sufficiency ratio
         with col_comp_2:
             with st.container(height=750, border=True):
 
                 st.markdown('''**Self-sufficiency ratio.**''')
 
-                
-                SSR = datablock["food"]["g/cap/day"].fbs.SSR()
-                SSR_metric_yr = SSR.sel(Year=metric_yr).to_numpy()
-                SSR_ref = SSR.sel(Year=2020).to_numpy()
+                ssr_metric = st.selectbox("Select metric", ["g/cap/day",
+                                                           "g_prot/cap/day",
+                                                           "g_fat/cap/day",
+                                                           "g_co2e/cap/day",
+                                                           "kCal/cap/day",], key="SSR_metric")
+
+                gcapday = datablock["food"][ssr_metric].sel(Year=metric_yr).fillna(0)
+                gcapday = gcapday.fbs.group_sum(coordinate="Item_origin", new_name="Item")
+                gcapday_ref = datablock["food"][ssr_metric].sel(Year=2020).fillna(0)
+                gcapday_ref = gcapday_ref.fbs.group_sum(coordinate="Item_origin", new_name="Item")
+
+                SSR_ref = gcapday_ref.fbs.SSR()
+                SSR_metric_yr = gcapday.fbs.SSR()
 
                 st.metric(label="SSR", value="{:.2f} %".format(100*SSR_metric_yr),
                     delta="{:.2f} %".format(100*(SSR_metric_yr-SSR_ref)))
                 
-                df = pd.DataFrame({"Item":["Low", "Mid", "High"],
-                                "variable":["SSR", "SSR", "SSR"],
-                                "value":[float(SSR_ref), float(1-SSR_ref), 0.2]})
-
-                bars = alt.Chart(df).mark_bar().encode(
-                    x=alt.X("sum(value):Q",
-                            title="Self-sufficiency ratio",
-                            axis=alt.Axis(labels=False)),
-                    color=alt.Color("Item",
-                                    title=None,
-                                    legend=None,
-                                    scale=alt.Scale(domain=["High", "Mid", "Low"],
-                                                    range=["#008000", "#FF8800", "#FF0000"])),
-                    tooltip="Item:N",
-                    order=alt.Order("value:Q", sort="descending")
-                ).properties(height=80)
-
-                ssr_line = alt.Chart(pd.DataFrame({
-                    'Self-sufficiency ratio': SSR_metric_yr,
-                    'color': ['black']
-                    })).mark_rule().encode(
-                    x='Self-sufficiency ratio:Q',
-                    tooltip='Self-sufficiency ratio:Q',
-                    color=alt.Color('color:N', scale=None),
-                    strokeWidth=alt.value(4)
-                )
-
-                ref_line = alt.Chart(pd.DataFrame({
-                    'value': 0.682,
-                    'color': ['blue']
-                    })).mark_rule(
-                        color="blue",
-                        thickness=1,
-                    ).encode(x="value")
+                origin_color={"Animal Products": "red",
+                              "Vegetal Products": "green",
+                              "Cultured Product": "blue"}
                 
-                st.altair_chart(bars + ssr_line + ref_line, use_container_width=True)  
+                domestic_use = gcapday["imports"]+gcapday["production"]-gcapday["exports"]
+                domestic_use.name="domestic"
 
+                production_bar = plot_single_bar_altair(gcapday["production"],
+                                                        show="Item",
+                                                        vertical=False,
+                                                        ax_ticks=True,
+                                                        bar_width=100,
+                                                        ax_min=0,
+                                                        ax_max=np.max([gcapday["production"].sum(), domestic_use.sum()]),
+                                                        axis_title="Food production per capita",
+                                                        unit=ssr_metric.replace("_"," "),
+                                                        color=origin_color)
+
+                imports_bar = plot_single_bar_altair(domestic_use,
+                                                     show="Item",
+                                                     vertical=False,
+                                                     ax_ticks=True,
+                                                     bar_width=100,
+                                                     ax_min=0,
+                                                     ax_max=np.max([gcapday["production"].sum(), domestic_use.sum()]),
+                                                     axis_title="Domestic use per capita",
+                                                     unit=ssr_metric.replace("_"," "),
+                                                     color=origin_color)
+
+
+                st.altair_chart(production_bar, use_container_width=True)
+                st.altair_chart(imports_bar, use_container_width=True)
+                
                 if SSR_metric_yr < SSR_ref:
                     st.markdown(f'''
                     <span style="color:red">
@@ -188,6 +201,7 @@ def plots(datablock):
                 produces more food than it needs
                 </div>''', unsafe_allow_html=True)
                
+        # Land use
         with col_comp_3:
             with st.container(height=750, border=True):
 
@@ -390,19 +404,20 @@ def plots(datablock):
 
         plot1.imshow(LC_toplot, interpolation="none", origin="lower",
                         cmap=cmap_tar, norm=norm_tar)
-        patches = [mpatches.Patch(color=color_list[i],
-                                    label=label_list[i]) for i in unique_index]
-        plot1.legend(handles=patches, loc="upper left")
+        # patches = [mpatches.Patch(color=color_list[i],
+                                    # label=label_list[i]) for i in unique_index]
+        # plot1.legend(handles=patches, loc="upper left")
 
         plot1.axis("off")
-        plot1.set_xlim(left=-500)
+        # plot1.set_xlim(left=-500)
 
-        col2_1, col2_2, col2_3 = st.columns((3,2,2))
-        with col2_1:
-            st.pyplot(fig=f)
+        col2_1, col2_2, col2_3 = st.columns((2,1.3,2))
         with col2_2:
+            st.pyplot(fig=f)
+        with col2_3:
+            add_vertical_space(8)
             land_pctg = pctg.sum(dim=["x", "y"])
-            pie = pie_chart_altair(land_pctg, show="aggregate_class")
+            pie = pie_chart_altair(land_pctg, show="aggregate_class", unit="ha")
             st.altair_chart(pie)
     
     if plot_key != "Summary":

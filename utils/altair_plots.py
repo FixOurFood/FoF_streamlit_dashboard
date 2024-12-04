@@ -255,19 +255,21 @@ def plot_single_bar_altair(da, show="Item", axis_title=None,
 
     return c
 
-def pie_chart_altair(da, show="Item"):
+def pie_chart_altair(da, show="Item", unit=""):
     df = da.to_dataframe().reset_index().fillna(0)
     df = df.melt(id_vars=show, value_vars=da.name)
+    df["order"] = np.arange(len(da[show].values))
+    df['value_with_unit'] = df['value'].apply(lambda x: f"{x:.2f} {unit}")
 
     c = alt.Chart(df).mark_arc().encode(
         theta=alt.Theta("value:Q", sort=None),
         color=alt.Color(show,
-                        sort=None,
                         title="Land type",
                         scale=alt.Scale(domain=list(land_color_dict.keys()),
                                         range=list(land_color_dict.values()))),
-        tooltip=[alt.Tooltip(f'{show}:N', title="Type"),
-                 alt.Tooltip('sum(value)', title='Total', format=".2f")],
+        tooltip=[alt.Tooltip(f'{show}:N'),
+                 alt.Tooltip('value_with_unit:N', title='Total')],
+        order=alt.Order(f'order:N', sort='ascending')
     ).resolve_scale(theta='independent')
 
     return c

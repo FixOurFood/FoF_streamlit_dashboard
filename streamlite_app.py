@@ -22,7 +22,7 @@ if "datablock_baseline" not in st.session_state:
     st.session_state["datablock_baseline"] = datablock
 
 if "cereal_scaling" not in st.session_state:
-    st.session_state["cereal_scaling"] = False
+    st.session_state["cereal_scaling"] = True
 
 if "cereals" not in st.session_state:
     st.session_state["cereals"] = 0
@@ -103,23 +103,23 @@ with st.sidebar:
 
     with st.expander("**:earth_africa: Land use change**"):
 
-        land_slider_keys = ["pasture_sparing", "land_beccs", "arable_sparing", "foresting_spared"]
+        land_slider_keys = ["foresting_pasture", "land_beccs"]
 
-        pasture_sparing = st.slider('Spared pasture land fraction',
+        foresting_pasture = st.slider('Forested pasture land fraction',
                         min_value=0, max_value=100, step=1,
-                        key="pasture_sparing", help=help["sidebar_land"][0])        
+                        key="foresting_pasture", help=help["sidebar_land"][0])        
 
-        arable_sparing = st.slider('Spared arable land fraction',
-                        min_value=0, max_value=100, step=1,
-                        key="arable_sparing", help=help["sidebar_land"][1])
+        # arable_sparing = st.slider('Spared arable land fraction',
+        #                 min_value=0, max_value=100, step=1,
+        #                 key="arable_sparing", help=help["sidebar_land"][1])
 
         land_BECCS = st.slider('Percentage of farmland used for BECCS crops',
                         min_value=0, max_value=20, step=1,
                         key="land_beccs", help=help["sidebar_innovation"][2])
 
-        foresting_spared = st.slider('Forested spared land fraction',
-                        min_value=0, max_value=100, step=1,
-                        key="foresting_spared", help=help["sidebar_land"][2])
+        # foresting_spared = st.slider('Forested spared land fraction',
+        #                 min_value=0, max_value=100, step=1,
+        #                 key="foresting_spared", help=help["sidebar_land"][2])
         
         st.button("Reset", on_click=reset_sliders, key='reset_land',
                   kwargs={"keys":[land_slider_keys, "land_bar"]})
@@ -454,17 +454,17 @@ food_system.add_step(food_waste_model,
 
 # Land management
 food_system.add_step(spare_alc_model,
-                        {"spare_fraction":pasture_sparing/100,
+                        {"spare_fraction":foresting_pasture/100,
                         "land_type":["Improved grassland", "Semi-natural grassland"],
                         "items":"Animal Products"})
 
-food_system.add_step(spare_alc_model,
-                        {"spare_fraction":arable_sparing/100,
-                        "land_type":["Arable"],
-                        "items":"Vegetal Products"})
+# food_system.add_step(spare_alc_model,
+#                         {"spare_fraction":arable_sparing/100,
+#                         "land_type":["Arable"],
+#                         "items":"Vegetal Products"})
 
 food_system.add_step(foresting_spared_model,
-                        {"forest_fraction":foresting_spared/100,
+                        {"forest_fraction":1,
                         "bdleaf_conif_ratio":st.session_state.bdleaf_conif_ratio/100})
 
 food_system.add_step(BECCS_farm_land,

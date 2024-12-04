@@ -65,10 +65,8 @@ def submit_scenario(user_id, SSR, total_emissions, ambition_levels=False, check_
             st.session_state["waste"],
             st.session_state["labmeat"],
             
-            st.session_state["pasture_sparing"],
-            st.session_state["arable_sparing"],
+            st.session_state["foresting_pasture"],
             st.session_state["land_beccs"],
-            st.session_state["foresting_spared"],
 
             st.session_state["silvopasture"],
             st.session_state["methane_inhibitor"],
@@ -118,8 +116,8 @@ def get_pathway_data(pathway_name):
 
 def call_scenarios():
     """Call the scenarios from the Google Sheet"""
-        # reset all states
-    reset_sliders()
+    # reset all states
+    # reset_sliders()
     # get scenario state
     scenario = st.session_state["scenario"]
     pathway_data = get_pathway_data(scenario)
@@ -133,10 +131,8 @@ def call_scenarios():
         "waste",
         "labmeat",
 
-        "pasture_sparing",
-        "arable_sparing",
+        "foresting_pasture",
         "land_beccs",
-        "foresting_spared",
         
         "silvopasture",
         "methane_inhibitor",
