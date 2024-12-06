@@ -203,7 +203,7 @@ with st.sidebar:
         password = st.text_input("Enter the advanced settings password", type="password")
         if password == st.secrets["advanced_options_password"]:
 
-            check_ID = st.checkbox('Check ID for submission', value=True, key='check_ID')
+            check_ID = st.checkbox('Check ID for submission', value=False, key='check_ID')
             emission_factors = st.selectbox('Emission factors', options=["NDC 2020", "PN18"], key='emission_factors')
             cereal_scaling = st.checkbox('Scale cereal production to meet nutrient demands', value=True, key='cereal_scaling')
 
@@ -269,7 +269,7 @@ with st.sidebar:
                 st.error("Incorrect password")
 
             st.session_state.cereal_scaling = True
-            st.session_state.check_ID = True
+            st.session_state.check_ID = False
             st.session_state.emission_factors = "NDC 2020"
 
             cc_production_decline = False
