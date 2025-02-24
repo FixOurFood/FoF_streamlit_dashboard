@@ -17,8 +17,17 @@ from model import *
 
 from agrifoodpy.land import land
 
+@st.experimental_dialog("This is an outdated version of the Agrifood Calculator")
+def first_run_dialog(width="large"):
+    st.write("""Please visit the new version at https://fixourfood.org/calculator""")
+    if st.button("OK", type="primary"):
+        st.rerun()
+
 if "datablock_baseline" not in st.session_state:
     st.session_state["datablock_baseline"] = datablock
+
+if "first_run" not in st.session_state:
+    st.session_state["first_run"] = True
 
 # ------------------------
 # Help and tooltip strings
@@ -33,6 +42,10 @@ st.set_page_config(layout='wide',
 
 with open('utils/style.css') as f:
     st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+if st.session_state.first_run:
+    st.session_state.first_run = False
+    first_run_dialog()
 
 with st.sidebar:
 
