@@ -17,7 +17,7 @@ from model import *
 
 from agrifoodpy.land import land
 
-@st.experimental_dialog("This is an outdated version of the Agrifood Calculator")
+@st.dialog("This is an outdated version of the Agrifood Calculator")
 def first_run_dialog(width="large"):
     st.write("""Please visit the new version at https://fixourfood.org/calculator""")
     if st.button("OK", type="primary"):
